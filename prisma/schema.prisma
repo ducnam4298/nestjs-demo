@@ -11,7 +11,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL")
 }
 
 model Employee {
@@ -27,4 +26,12 @@ enum ROLE {
   ADMIN
   ENGINEER
   INTERN
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
