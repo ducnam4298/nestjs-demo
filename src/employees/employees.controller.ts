@@ -11,10 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { Prisma } from '@prisma/client';
+import { Position, Prisma } from '@prisma/client';
 import { EmployeesService } from './employees.service';
 import { LoggerService } from '../logger/logger.service';
-import { ROLE } from '../shared/enum';
 import { JwtAuthGuard } from '../auth/strategy/jwt-auth.guard';
 
 @SkipThrottle()
@@ -30,29 +29,29 @@ export class EmployeesController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
-  findAll(@Ip() ip: string, @Query('role') role?: ROLE) {
+  findAll(@Ip() ip: string, @Query('role') position?: Position) {
     this.logger.log(`Request for All Employees\t ${ip}`, EmployeesController.name);
-    return this.employeesService.findAll(role);
+    return this.employeesService.findAll(position);
   }
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.employeesService.findOne(+id);
+    return this.employeesService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEmployeeDto: Prisma.EmployeeUpdateInput) {
-    return this.employeesService.update(+id, updateEmployeeDto);
+    return this.employeesService.update(id, updateEmployeeDto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.employeesService.remove(+id);
+    return this.employeesService.remove(id);
   }
 }

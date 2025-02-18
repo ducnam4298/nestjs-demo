@@ -9,29 +9,69 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model Employee {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  role      ROLE
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum ROLE {
+enum Role {
+  SUPER_ADMIN
   ADMIN
-  ENGINEER
-  INTERN
+  USER
+  MODERATOR
+  GUEST
+}
+
+enum Position {
+  MANAGER
+  DEVELOPER
+  DESIGNER
+  QA
+  HR
+  SALES
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
-  password String
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  name       String
+  email      String?   @unique
+  phone      String?   @unique
+  token      Token[]
+  loginId    String?   @unique
+  login      Login?    @relation
+  employeeId String?   @unique
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  role       Role      @default(USER)
+}
+
+model Token {
+  id           String   @id @default(uuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deviceId     String
+  accessToken  String
+  refreshToken String
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String   @unique
+}
+
+model Login {
+  id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  username  String?  @unique
+  email     String?  @unique
+  phone     String?  @unique
+  password  String
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  position  Position
+  users     User[]
 }

@@ -5,12 +5,13 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { DatabaseService } from '../database/database.service';
 import { JwtStrategy } from './strategy/jwt.strategy';
+import { JWT_SECRET } from '../shared/constants';
 
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKey',
+      secret: JWT_SECRET,
       signOptions: { expiresIn: '60m' },
     }),
   ],

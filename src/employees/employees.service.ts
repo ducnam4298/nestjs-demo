@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Position, Prisma } from '@prisma/client';
 import { DatabaseService } from '../database/database.service';
-import { ROLE } from '../shared/enum';
 
 @Injectable()
 export class EmployeesService {
@@ -13,18 +12,18 @@ export class EmployeesService {
     });
   }
 
-  async findAll(role?: ROLE) {
-    if (role) {
+  async findAll(position?: Position) {
+    if (position) {
       return this.databaseService.employee.findMany({
         where: {
-          role,
+          position,
         },
       });
     }
     return this.databaseService.employee.findMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     return this.databaseService.employee.findUnique({
       where: {
         id,
@@ -32,7 +31,7 @@ export class EmployeesService {
     });
   }
 
-  async update(id: number, updateEmployeeDto: Prisma.EmployeeUpdateInput) {
+  async update(id: string, updateEmployeeDto: Prisma.EmployeeUpdateInput) {
     return this.databaseService.employee.update({
       where: {
         id,
@@ -41,7 +40,7 @@ export class EmployeesService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     return this.databaseService.employee.delete({
       where: {
         id,
