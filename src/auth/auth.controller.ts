@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './strategy/jwt-auth.guard';
+import { AccessAuthGuard } from './access_control/access-auth.guard';
 // import { LoggerService } from '../logger';
 
 @SkipThrottle()
@@ -19,7 +19,7 @@ export class AuthController {
     return this.authService.login(identifier, password, deviceId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('logout')
   async logout(@Req() req, @Body('deviceId') deviceId: string) {
@@ -38,7 +38,7 @@ export class AuthController {
     return this.authService.registerSuperAdmin();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('logout-all')
   async logoutAll(@Req() req) {

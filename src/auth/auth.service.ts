@@ -2,15 +2,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { sign, verify } from 'jsonwebtoken';
-import { DatabaseService } from '../database/database.service';
 import { JWT_SECRET } from '../shared/constants';
-import { Position, Role } from '@prisma/client';
+import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class AuthService {
   constructor(private databaseService: DatabaseService) {}
   async register(
     name: string,
+    roleId: string,
     password: string,
     username?: string,
     email?: string,
@@ -19,14 +19,12 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const identifier = username || email || phone;
-
-    if (!identifier) {
-      throw new Error('Not empty identifier');
-    }
+    if (!identifier) throw new Error('Identifier is required');
 
     return this.databaseService.user.create({
       data: {
         name,
+        roleId,
         email,
         phone,
         login: {
@@ -38,24 +36,26 @@ export class AuthService {
 
   async registerSuperAdmin() {
     const hashedPassword = await bcrypt.hash('superadmin', 10);
-
+    let role = await this.databaseService.role.findUnique({
+      where: { name: 'SUPER_ADMIN' },
+    });
+    if (!role) {
+      role = await this.databaseService.role.create({
+        data: { name: 'SUPER_ADMIN' },
+      });
+    }
     return this.databaseService.user.create({
       data: {
-        name: 'admin',
+        name: 'Admin',
         email: 'admin@gmail.com',
         phone: '0000000000',
-        role: Role.SUPER_ADMIN,
+        roleId: role.id,
         login: {
           create: {
             username: 'admin',
             email: 'admin@gmail.com',
             phone: '0000000000',
             password: hashedPassword,
-          },
-        },
-        employee: {
-          create: {
-            position: Position.MANAGER,
           },
         },
       },
@@ -67,28 +67,27 @@ export class AuthService {
       where: {
         OR: [{ email: identifier }, { phone: identifier }, { username: identifier }],
       },
-      include: { user: true },
+      include: { user: { include: { role: { include: { permissions: true } } } } },
     });
 
     if (!userLogin || !(await bcrypt.compare(password, userLogin.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const userId = userLogin.user.id;
 
-    const accessToken = sign({ userId, deviceId }, JWT_SECRET, { expiresIn: '15m' });
+    const { id: userId, role } = userLogin.user;
+    const permissions = role?.permissions?.map(p => p.name) || [];
+
+    const accessToken = sign({ userId, deviceId, role: role.name, permissions }, JWT_SECRET, {
+      expiresIn: '15m',
+    });
+
     const refreshToken = sign({ userId, deviceId }, JWT_SECRET, { expiresIn: '7d' });
-
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
     await this.databaseService.token.deleteMany({ where: { userId, deviceId } });
 
     await this.databaseService.token.create({
-      data: {
-        userId,
-        deviceId,
-        accessToken,
-        refreshToken: hashedRefreshToken,
-      },
+      data: { userId, deviceId, accessToken, refreshToken: hashedRefreshToken },
     });
 
     return { accessToken, refreshToken };
@@ -96,37 +95,32 @@ export class AuthService {
 
   async refreshToken(refreshToken: string, deviceId: string) {
     try {
-      const decoded = verify(refreshToken, JWT_SECRET) as {
-        userId: string;
-        deviceId: string;
-      };
+      const decoded = verify(refreshToken, JWT_SECRET) as { userId: string; deviceId: string };
 
       const tokenRecord = await this.databaseService.token.findFirst({
         where: { userId: decoded.userId, deviceId },
+        include: { user: { include: { role: { include: { permissions: true } } } } },
       });
 
-      if (!tokenRecord) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+      if (!tokenRecord) throw new UnauthorizedException('Invalid refresh token');
 
       const isValid = await bcrypt.compare(refreshToken, tokenRecord.refreshToken);
-      if (!isValid) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+      if (!isValid) throw new UnauthorizedException('Invalid refresh token');
 
-      // 🔹 Tạo Access Token mới
-      const newAccessToken = sign({ userId: decoded.userId, deviceId }, JWT_SECRET, {
+      const { id: userId, role } = tokenRecord.user;
+      const permissions = role?.permissions?.map(p => p.name) || [];
+
+      const newAccessToken = sign({ userId, deviceId, role: role.name, permissions }, JWT_SECRET, {
         expiresIn: '15m',
       });
 
-      // 🔹 Cập nhật access token trong database
       await this.databaseService.token.update({
         where: { id: tokenRecord.id },
         data: { accessToken: newAccessToken },
       });
 
       return { accessToken: newAccessToken };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

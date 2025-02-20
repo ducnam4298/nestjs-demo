@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { DatabaseService } from '../database/database.service';
-import { JwtStrategy } from './strategy/jwt.strategy';
+import { AccessStrategy } from './access_control/access.strategy';
 import { JWT_SECRET } from '../shared/constants';
 
 @Module({
@@ -15,7 +15,7 @@ import { JWT_SECRET } from '../shared/constants';
       signOptions: { expiresIn: '60m' },
     }),
   ],
-  providers: [AuthService, JwtStrategy, DatabaseService],
+  providers: [AuthService, AccessStrategy, DatabaseService],
   controllers: [AuthController],
 })
 export class AuthModule {}

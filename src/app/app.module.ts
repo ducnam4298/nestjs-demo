@@ -2,12 +2,15 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
+import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import { AppService } from './app.service';
 import { EmployeesModule } from '../employees';
 import { DatabaseModule } from '../database/database.module';
 import { LoggerModule } from '../logger';
 import { UsersModule } from '../users';
 import { AuthModule } from '../auth';
+import { RolesModule } from '../roles';
+import { PermissionsModule } from '../permissions';
 
 @Module({
   imports: [
@@ -17,6 +20,8 @@ import { AuthModule } from '../auth';
     AuthModule,
     EmployeesModule,
     UsersModule,
+    RolesModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -24,6 +29,10 @@ import { AuthModule } from '../auth';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AccessAuthGuard,
     },
   ],
 })
