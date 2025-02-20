@@ -1,39 +1,28 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
-import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import { AppService } from './app.service';
-import { EmployeesModule } from '../employees';
 import { DatabaseModule } from '../database/database.module';
-import { LoggerModule } from '../logger';
 import { UsersModule } from '../users';
 import { AuthModule } from '../auth';
 import { RolesModule } from '../roles';
 import { PermissionsModule } from '../permissions';
+import { AccessModule } from '../auth/access_control/access.module';
+import throttlerConfig from '../config/throttler.config';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ name: 'long', ttl: 1000, limit: 5 }]),
+    ConfigModule.forRoot({ isGlobal: true }), // Load biến môi trường từ .env
+    ThrottlerModule.forRoot(throttlerConfig),
     DatabaseModule,
-    LoggerModule,
     AuthModule,
-    EmployeesModule,
     UsersModule,
     RolesModule,
     PermissionsModule,
+    AccessModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: AccessAuthGuard,
-    },
-  ],
+  providers: [AppService],
 })
 export class AppModule {}

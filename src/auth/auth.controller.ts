@@ -6,16 +6,31 @@ import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 
 @SkipThrottle()
 @Controller('auth')
+@UseGuards(AccessAuthGuard)
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @UseGuards()
   @Post('login')
   async login(@Body('loginDto') loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
-  @UseGuards(AccessAuthGuard)
+  @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @UseGuards()
+  @Post('register')
+  async register(@Body('registerDto') registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @UseGuards()
+  @Post('register-superadmin')
+  async registerSuperAdmin() {
+    return this.authService.registerSuperAdmin();
+  }
+
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('logout')
   async logout(@Body('logoutDto') logoutDto: LogoutDto) {
@@ -23,25 +38,13 @@ export class AuthController {
   }
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
-  @Post('register')
-  async register(@Body('registerDto') registerDto: RegisterDto): Promise<any> {
-    return this.authService.register(registerDto);
-  }
-
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
-  @Post('register-superadmin')
-  async registerSuperAdmin(): Promise<any> {
-    return this.authService.registerSuperAdmin();
-  }
-
-  @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('logout-all')
   async logoutAll(@Req() req) {
     return this.authService.logoutAll(req.user.userId);
   }
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @UseGuards()
   @Post('refresh')
   async refreshToken(@Body('refreshTokenDto') refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);

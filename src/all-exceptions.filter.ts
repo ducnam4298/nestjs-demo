@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { PrismaClientValidationError } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
@@ -13,7 +20,6 @@ type MyResponseObj = {
 
 @Catch()
 export class AllExceptionsFilter extends BaseExceptionFilter {
-  private readonly logger = new LoggerService(AllExceptionsFilter.name);
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -25,7 +31,13 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
       path: request.url,
       response: '',
     };
-    if (exception instanceof HttpException) {
+    if (exception instanceof UnauthorizedException || exception instanceof ForbiddenException) {
+      myResponseObj.statusCode = exception.getStatus();
+      myResponseObj.response = {
+        success: false,
+        message: exception.message || 'Authentication failed',
+      };
+    } else if (exception instanceof HttpException) {
       myResponseObj.statusCode = exception.getStatus();
       myResponseObj.response = exception.getResponse();
     } else if (exception instanceof PrismaClientValidationError) {
@@ -36,7 +48,10 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
       myResponseObj.response = 'INTERNAL SERVER ERROR';
     }
     response.status(myResponseObj.statusCode).json(myResponseObj);
-    this.logger.error(myResponseObj.response, AllExceptionsFilter.name);
+    LoggerService.error(
+      `Exception: ${JSON.stringify(myResponseObj.response)}`,
+      AllExceptionsFilter.name
+    );
     super.catch(exception, host);
   }
 }

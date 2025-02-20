@@ -1,29 +1,37 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { sign, verify } from 'jsonwebtoken';
-import { JWT_SECRET } from '../shared/constants';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { RolesService } from '../roles';
+import { LoggerService } from '../logger';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import { PasswordService } from './password.service';
+import { TokenService } from './token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private databaseService: DatabaseService,
-    private readonly rolesService: RolesService
+    private readonly databaseService: DatabaseService,
+    private readonly rolesService: RolesService,
+    private readonly passwordService: PasswordService,
+    private readonly tokenService: TokenService
   ) {}
+
   async register(registerDto: RegisterDto) {
     const { name, password, username, email, phone, roleId } = registerDto;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    LoggerService.log(`Registering user: ${username || email || phone}`, AuthService.name);
+    const hashedPassword = await this.passwordService.hashPassword(password);
 
     const identifier = username || email || phone;
     if (!identifier) throw new BadRequestException('Username, email, or phone is required');
+
+    const existingUser = await this.databaseService.user.findFirst({
+      where: {
+        OR: [{ email }, { phone }],
+      },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email or phone number is already in use');
+    }
 
     let role = roleId
       ? await this.databaseService.role.findUnique({ where: { id: roleId } })
@@ -33,15 +41,10 @@ export class AuthService {
       role = await this.rolesService.create({ name: 'USER' });
     }
 
-    if (roleId) {
-      const existingRole = await this.databaseService.role.findUnique({ where: { id: roleId } });
-      if (!existingRole) throw new BadRequestException('Invalid roleId');
-    }
-
-    return this.databaseService.user.create({
+    const newUser = await this.databaseService.user.create({
       data: {
         name,
-        roleId: roleId || role.id,
+        roleId: role.id,
         email,
         phone,
         login: {
@@ -49,12 +52,15 @@ export class AuthService {
         },
       },
     });
+
+    return { message: 'Registration successful', userId: newUser.id };
   }
 
   async registerSuperAdmin() {
-    const hashedPassword = await bcrypt.hash('superadmin', 10);
+    const hashedPassword = await this.passwordService.hashPassword('superadmin');
     const roleName = 'SUPER_ADMIN';
     const email = 'admin@gmail.com';
+    LoggerService.log('Registering SuperAdmin', AuthService.name);
 
     let role = await this.databaseService.role.findUnique({
       where: { name: roleName },
@@ -63,7 +69,6 @@ export class AuthService {
 
     if (!role) {
       role = await this.rolesService.create({ name: roleName });
-
       await this.rolesService.updateRolePermissions(role.id);
     } else {
       const hasAllPermissions = await this.rolesService.hasAllDefaultPermissions(role.id);
@@ -72,22 +77,17 @@ export class AuthService {
       }
     }
 
-    const existingAdmin = await this.databaseService.user.findUnique({
-      where: { email },
-    });
+    const existingAdmin = await this.databaseService.user.findUnique({ where: { email } });
 
     if (existingAdmin) {
-      console.warn('⚠ SuperAdmin already exists. Checking role...');
-
+      LoggerService.warn('SuperAdmin already exists. Checking role...', AuthService.name);
       if (existingAdmin.roleId !== role.id) {
         await this.databaseService.user.update({
           where: { id: existingAdmin.id },
           data: { roleId: role.id },
         });
-
         return { message: 'SuperAdmin role updated successfully', user: existingAdmin };
       }
-
       return { message: 'SuperAdmin already has the correct role', user: existingAdmin };
     }
 
@@ -113,81 +113,40 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { identifier, password, deviceId } = loginDto;
+    LoggerService.log(
+      `User login attempt: ${identifier} from device: ${deviceId}`,
+      AuthService.name
+    );
+
     const userLogin = await this.databaseService.login.findFirst({
-      where: {
-        OR: [{ email: identifier }, { phone: identifier }, { username: identifier }],
-      },
+      where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
       include: { user: { include: { role: { include: { permissions: true } } } } },
     });
 
-    if (!userLogin || !(await bcrypt.compare(password, userLogin.password))) {
+    if (!userLogin || !(await this.passwordService.comparePassword(password, userLogin.password))) {
+      LoggerService.warn(`Failed login attempt: ${identifier}`, AuthService.name);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const { id: userId, role } = userLogin.user;
-    const roleName = role?.name || 'UNKNOWN';
-    const permissions = role?.permissions?.map(p => p.name) || [];
-
-    const accessToken = sign({ userId, deviceId, role: roleName, permissions }, JWT_SECRET, {
-      expiresIn: '15m',
-    });
-
-    const refreshToken = sign({ userId, deviceId }, JWT_SECRET, { expiresIn: '7d' });
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-
-    await this.databaseService.token.deleteMany({ where: { userId, deviceId } });
-
-    await this.databaseService.token.create({
-      data: { userId, deviceId, accessToken, refreshToken: hashedRefreshToken },
-    });
-
-    return { accessToken, refreshToken };
+    return this.tokenService.generateTokens(userLogin.user, deviceId);
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken, deviceId } = refreshTokenDto;
-    try {
-      const decoded = verify(refreshToken, JWT_SECRET) as { userId: string; deviceId: string };
-
-      const tokenRecord = await this.databaseService.token.findFirst({
-        where: { userId: decoded.userId, deviceId },
-        include: { user: { include: { role: { include: { permissions: true } } } } },
-      });
-
-      if (!tokenRecord) throw new UnauthorizedException('Invalid refresh token');
-
-      const isValid = await bcrypt.compare(refreshToken, tokenRecord.refreshToken);
-      if (!isValid) throw new UnauthorizedException('Invalid refresh token');
-
-      const { id: userId, role } = tokenRecord.user;
-
-      if (!role) throw new ForbiddenException('User has no assigned role');
-
-      const permissions = role?.permissions?.map(p => p.name) || [];
-
-      const newAccessToken = sign({ userId, deviceId, role: role.name, permissions }, JWT_SECRET, {
-        expiresIn: '15m',
-      });
-
-      await this.databaseService.token.update({
-        where: { id: tokenRecord.id },
-        data: { accessToken: newAccessToken },
-      });
-
-      return { accessToken: newAccessToken };
-    } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
+    LoggerService.log(`Refreshing token for device: ${deviceId}`, AuthService.name);
+    return this.tokenService.refreshAccessToken(refreshToken, deviceId);
   }
 
   async logout(logoutDto: LogoutDto) {
     const { userId, deviceId } = logoutDto;
-    await this.databaseService.token.deleteMany({ where: { userId, deviceId } });
+    LoggerService.log(`User ${userId} logging out from device ${deviceId}`, AuthService.name);
+    await this.tokenService.invalidateToken(userId, deviceId);
     return { message: 'Logged out from this device' };
   }
 
   async logoutAll(userId: string) {
-    await this.databaseService.token.deleteMany({ where: { userId } });
+    LoggerService.log(`User ${userId} logging out from all devices`, AuthService.name);
+    await this.tokenService.invalidateAllTokens(userId);
     return { message: 'Logged out from all devices' };
   }
 }
