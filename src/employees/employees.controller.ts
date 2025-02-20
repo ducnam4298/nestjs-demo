@@ -15,6 +15,7 @@ import { Position, Prisma } from '@prisma/client';
 import { EmployeesService } from './employees.service';
 import { LoggerService } from '../logger/logger.service';
 import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
+import { FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 
 @SkipThrottle()
 @Controller('employees')
@@ -32,9 +33,9 @@ export class EmployeesController {
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
-  findAll(@Ip() ip: string, @Query('role') position?: Position) {
+  findAll(@Ip() ip: string, @Query('findAllEmployeeDto') findAllEmployeeDto: FindAllEmployeeDto) {
     this.logger.log(`Request for All Employees\t ${ip}`, EmployeesController.name);
-    return this.employeesService.findAll(position);
+    return this.employeesService.findAll(findAllEmployeeDto);
   }
 
   @UseGuards(AccessAuthGuard)
@@ -47,7 +48,7 @@ export class EmployeesController {
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEmployeeDto: Prisma.EmployeeUpdateInput) {
+  update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
     return this.employeesService.update(id, updateEmployeeDto);
   }
 

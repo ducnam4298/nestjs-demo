@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Patch } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import { Permissions } from '../auth/access_control/access.decorator';
 import { RolesService } from './roles.service';
+import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
 
 @Controller('roles')
 export class RolesController {
@@ -11,25 +12,24 @@ export class RolesController {
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
-  create(@Body('name') name: string) {
-    return this.rolesService.create(name);
+  create(@Body('createRoleDto') createRoleDto: CreateRoleDto) {
+    return this.rolesService.create(createRoleDto);
   }
 
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
   assignPermissionsForRole(
-    @Body('roleId') roleId: string,
-    @Body('permissionIds') permissionIds: string[]
+    @Body('assignPermissionsForRole') assignPermissionsForRole: AssignPermissionsForRole
   ) {
-    return this.rolesService.assignPermissionsForRole(roleId, permissionIds);
+    return this.rolesService.assignPermissionsForRole(assignPermissionsForRole);
   }
 
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
-  findAll(@Param('name') name?: string) {
-    return this.rolesService.findAll(name);
+  findAll(@Param('findAllRoleDto') findAllRoleDto?: FindAllRoleDto) {
+    return this.rolesService.findAll(findAllRoleDto);
   }
 
   @UseGuards(AccessAuthGuard)
@@ -37,6 +37,13 @@ export class RolesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.rolesService.findOne(id);
+  }
+
+  @UseGuards(AccessAuthGuard)
+  @Throttle({ short: { ttl: 1000, limit: 1 } })
+  @Patch(':id/permissions')
+  async updateRolePermissions(@Param('id') id: string) {
+    return this.rolesService.updateRolePermissions(id);
   }
 
   @UseGuards(AccessAuthGuard)

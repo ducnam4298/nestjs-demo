@@ -1,30 +1,47 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { sign, verify } from 'jsonwebtoken';
 import { JWT_SECRET } from '../shared/constants';
 import { DatabaseService } from '../database/database.service';
+import { RolesService } from '../roles';
+import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private databaseService: DatabaseService) {}
-  async register(
-    name: string,
-    roleId: string,
-    password: string,
-    username?: string,
-    email?: string,
-    phone?: string
-  ) {
+  constructor(
+    private databaseService: DatabaseService,
+    private readonly rolesService: RolesService
+  ) {}
+  async register(registerDto: RegisterDto) {
+    const { name, password, username, email, phone, roleId } = registerDto;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const identifier = username || email || phone;
-    if (!identifier) throw new Error('Identifier is required');
+    if (!identifier) throw new BadRequestException('Username, email, or phone is required');
+
+    let role = roleId
+      ? await this.databaseService.role.findUnique({ where: { id: roleId } })
+      : await this.databaseService.role.findUnique({ where: { name: 'USER' } });
+
+    if (!role) {
+      role = await this.rolesService.create({ name: 'USER' });
+    }
+
+    if (roleId) {
+      const existingRole = await this.databaseService.role.findUnique({ where: { id: roleId } });
+      if (!existingRole) throw new BadRequestException('Invalid roleId');
+    }
 
     return this.databaseService.user.create({
       data: {
         name,
-        roleId,
+        roleId: roleId || role.id,
         email,
         phone,
         login: {
@@ -36,33 +53,66 @@ export class AuthService {
 
   async registerSuperAdmin() {
     const hashedPassword = await bcrypt.hash('superadmin', 10);
+    const roleName = 'SUPER_ADMIN';
+    const email = 'admin@gmail.com';
+
     let role = await this.databaseService.role.findUnique({
-      where: { name: 'SUPER_ADMIN' },
+      where: { name: roleName },
+      include: { permissions: true },
     });
+
     if (!role) {
-      role = await this.databaseService.role.create({
-        data: { name: 'SUPER_ADMIN' },
-      });
+      role = await this.rolesService.create({ name: roleName });
+
+      await this.rolesService.updateRolePermissions(role.id);
+    } else {
+      const hasAllPermissions = await this.rolesService.hasAllDefaultPermissions(role.id);
+      if (!hasAllPermissions) {
+        await this.rolesService.updateRolePermissions(role.id);
+      }
     }
-    return this.databaseService.user.create({
+
+    const existingAdmin = await this.databaseService.user.findUnique({
+      where: { email },
+    });
+
+    if (existingAdmin) {
+      console.warn('⚠ SuperAdmin already exists. Checking role...');
+
+      if (existingAdmin.roleId !== role.id) {
+        await this.databaseService.user.update({
+          where: { id: existingAdmin.id },
+          data: { roleId: role.id },
+        });
+
+        return { message: 'SuperAdmin role updated successfully', user: existingAdmin };
+      }
+
+      return { message: 'SuperAdmin already has the correct role', user: existingAdmin };
+    }
+
+    const newUser = await this.databaseService.user.create({
       data: {
-        name: 'Admin',
-        email: 'admin@gmail.com',
+        name: 'admin',
+        email,
         phone: '0000000000',
         roleId: role.id,
         login: {
           create: {
             username: 'admin',
-            email: 'admin@gmail.com',
+            email,
             phone: '0000000000',
             password: hashedPassword,
           },
         },
       },
     });
+
+    return { message: 'SuperAdmin created successfully', user: newUser };
   }
 
-  async login(identifier: string, password: string, deviceId: string) {
+  async login(loginDto: LoginDto) {
+    const { identifier, password, deviceId } = loginDto;
     const userLogin = await this.databaseService.login.findFirst({
       where: {
         OR: [{ email: identifier }, { phone: identifier }, { username: identifier }],
@@ -75,9 +125,10 @@ export class AuthService {
     }
 
     const { id: userId, role } = userLogin.user;
+    const roleName = role?.name || 'UNKNOWN';
     const permissions = role?.permissions?.map(p => p.name) || [];
 
-    const accessToken = sign({ userId, deviceId, role: role.name, permissions }, JWT_SECRET, {
+    const accessToken = sign({ userId, deviceId, role: roleName, permissions }, JWT_SECRET, {
       expiresIn: '15m',
     });
 
@@ -93,7 +144,8 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refreshToken(refreshToken: string, deviceId: string) {
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    const { refreshToken, deviceId } = refreshTokenDto;
     try {
       const decoded = verify(refreshToken, JWT_SECRET) as { userId: string; deviceId: string };
 
@@ -108,6 +160,9 @@ export class AuthService {
       if (!isValid) throw new UnauthorizedException('Invalid refresh token');
 
       const { id: userId, role } = tokenRecord.user;
+
+      if (!role) throw new ForbiddenException('User has no assigned role');
+
       const permissions = role?.permissions?.map(p => p.name) || [];
 
       const newAccessToken = sign({ userId, deviceId, role: role.name, permissions }, JWT_SECRET, {
@@ -125,7 +180,8 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, deviceId: string) {
+  async logout(logoutDto: LogoutDto) {
+    const { userId, deviceId } = logoutDto;
     await this.databaseService.token.deleteMany({ where: { userId, deviceId } });
     return { message: 'Logged out from this device' };
   }

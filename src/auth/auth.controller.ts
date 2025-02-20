@@ -2,34 +2,30 @@ import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AccessAuthGuard } from './access_control/access-auth.guard';
-// import { LoggerService } from '../logger';
+import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 
 @SkipThrottle()
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-  // private readonly logger = new LoggerService();
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('login')
-  async login(
-    @Body()
-    { identifier, password, deviceId }: { identifier: string; password: string; deviceId: string }
-  ) {
-    return this.authService.login(identifier, password, deviceId);
+  async login(@Body('loginDto') loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('logout')
-  async logout(@Req() req, @Body('deviceId') deviceId: string) {
-    return this.authService.logout(req.user.userId, deviceId);
+  async logout(@Body('logoutDto') logoutDto: LogoutDto) {
+    return this.authService.logout(logoutDto);
   }
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('register')
-  async register(@Body() req): Promise<any> {
-    return this.authService.register(req.name, req.password, req.username, req.email, req.phone);
+  async register(@Body('registerDto') registerDto: RegisterDto): Promise<any> {
+    return this.authService.register(registerDto);
   }
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
@@ -47,9 +43,7 @@ export class AuthController {
 
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post('refresh')
-  async refreshToken(
-    @Body() { refreshToken, deviceId }: { refreshToken: string; deviceId: string }
-  ) {
-    return this.authService.refreshToken(refreshToken, deviceId);
+  async refreshToken(@Body('refreshTokenDto') refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto);
   }
 }
