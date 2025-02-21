@@ -9,6 +9,7 @@ import { DatabaseService } from '../database/database.service';
 import { RolesService } from '../roles';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { UsersService } from '../users';
 
 @Global()
 @Module({
@@ -31,6 +32,7 @@ import { TokenService } from './token.service';
     RolesService,
     PasswordService,
     TokenService,
+    UsersService,
   ],
   exports: [AuthService, JwtModule, PasswordService, TokenService],
 })

@@ -5,6 +5,7 @@ import { LoggerService } from '../logger';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +13,8 @@ export class AuthService {
     private readonly databaseService: DatabaseService,
     private readonly rolesService: RolesService,
     private readonly passwordService: PasswordService,
-    private readonly tokenService: TokenService
+    private readonly tokenService: TokenService,
+    private readonly usersService: UsersService
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -148,5 +150,9 @@ export class AuthService {
     LoggerService.log(`User ${userId} logging out from all devices`, AuthService.name);
     await this.tokenService.invalidateAllTokens(userId);
     return { message: 'Logged out from all devices' };
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    return this.usersService.changePassword(userId, { oldPassword, newPassword });
   }
 }

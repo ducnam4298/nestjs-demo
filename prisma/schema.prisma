@@ -22,19 +22,27 @@ enum Position {
   SALES
 }
 
+enum StatusUser {
+  ACTIVATED
+  PENDING
+  BLOCKED
+}
+
 model User {
   id         String    @id @default(uuid())
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   name       String
-  email      String   @unique
-  phone      String   @unique
+  email      String    @unique
+  phone      String    @unique
   token      Token[]
   login      Login?    @relation
   employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  roleId     String?   @unique
+  roleId     String?
   role       Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  isActive   Boolean   @default(false)
+  status     StatusUser? @default(PENDING)
 }
 
 model Token {

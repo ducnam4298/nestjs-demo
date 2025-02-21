@@ -12,16 +12,14 @@ export class RolesController {
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
-  create(@Body('createRoleDto') createRoleDto: CreateRoleDto) {
+  create(@Body() createRoleDto: CreateRoleDto) {
     return this.rolesService.create(createRoleDto);
   }
 
   @UseGuards(AccessAuthGuard)
   @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
-  assignPermissionsForRole(
-    @Body('assignPermissionsForRole') assignPermissionsForRole: AssignPermissionsForRole
-  ) {
+  assignPermissionsForRole(@Body() assignPermissionsForRole: AssignPermissionsForRole) {
     return this.rolesService.assignPermissionsForRole(assignPermissionsForRole);
   }
 
