@@ -49,7 +49,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     }
     response.status(myResponseObj.statusCode).json(myResponseObj);
     LoggerService.error(
-      `Exception: ${JSON.stringify(myResponseObj.response)}`,
+      `❌ Exception: ${JSON.stringify(myResponseObj.response)}`,
       AllExceptionsFilter.name
     );
     super.catch(exception, host);

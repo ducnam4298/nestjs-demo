@@ -22,36 +22,31 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
   create(@Body() createEmployeeDto: CreateEmployeeDto) {
     return this.employeesService.create(createEmployeeDto);
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
   findAll(@Ip() ip: string, @Query('findAllEmployeeDto') findAllEmployeeDto: FindAllEmployeeDto) {
-    LoggerService.log(`Request for All Employees\t ${ip}`, EmployeesController.name);
+    LoggerService.log(`ℹ️ Request for All Employees\t ${ip}`, EmployeesController.name);
     return this.employeesService.findAll(findAllEmployeeDto);
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.employeesService.findOne(id);
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateEmployeeDto: UpdateEmployeeDto) {
     return this.employeesService.update(id, updateEmployeeDto);
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.employeesService.remove(id);

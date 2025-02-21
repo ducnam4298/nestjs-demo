@@ -1,7 +1,7 @@
 import { ConsoleLogger, Injectable } from '@nestjs/common';
-import fs from 'fs';
-import { promises as fsPromises } from 'fs';
+import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
+// import cron from 'node-cron'; // Nếu bạn sử dụng node-cron
 
 @Injectable()
 export class LoggerService extends ConsoleLogger {
@@ -9,10 +9,26 @@ export class LoggerService extends ConsoleLogger {
 
   private constructor() {
     super();
+
+    // Cách 1: Sử dụng setInterval để dọn dẹp logs mỗi ngày (24 giờ)
+    setInterval(
+      () => {
+        void this.cleanupOldLogs(path.join(__dirname, '..', '..', 'logs'));
+      },
+      24 * 60 * 60 * 1000
+    ); // 24 giờ
+
+    // Cách 2: Sử dụng node-cron để dọn dẹp logs vào nửa đêm mỗi ngày
+    // cron.schedule('0 0 * * *', () => {
+    //   this.cleanupOldLogs(path.join(__dirname, '..', '..', 'logs'));
+    //   console.log('✅ Log cleanup completed');
+    // });
   }
 
   private async logToFile(entry: string) {
-    const formattedEntry = `${new Date().toLocaleString('en-US', {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const formattedEntry = `${now.toLocaleString('en-US', {
       dateStyle: 'short',
       timeStyle: 'short',
       timeZone: 'America/Chicago',
@@ -20,14 +36,37 @@ export class LoggerService extends ConsoleLogger {
 
     try {
       const logDir = path.join(__dirname, '..', '..', 'logs');
-      const logFilePath = path.join(logDir, 'muLogFile.log');
+      const logFilePath = path.join(logDir, `${dateStr}.log`);
 
       if (!fs.existsSync(logDir)) {
-        await fsPromises.mkdir(logDir);
+        await fsPromises.mkdir(logDir, { recursive: true });
       }
+
       await fsPromises.appendFile(logFilePath, formattedEntry);
+      await this.cleanupOldLogs(logDir); // Dọn dẹp log sau khi ghi mới
     } catch (e) {
-      console.error('Failed to write log:', e);
+      console.error('❌ Failed to write log:', e);
+    }
+  }
+
+  // Hàm dọn dẹp các file log cũ hơn 30 ngày
+  private async cleanupOldLogs(logDir: string) {
+    const files = await fsPromises.readdir(logDir);
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const currentTime = Date.now();
+
+    for (const file of files) {
+      const filePath = path.join(logDir, file);
+      const stats = await fsPromises.stat(filePath);
+
+      if (currentTime - stats.mtimeMs > thirtyDaysInMs) {
+        try {
+          await fsPromises.unlink(filePath);
+          console.log(`✅ Deleted log file: ${file}`);
+        } catch (error) {
+          console.error(`❌ Failed to delete log file: ${file}`, error);
+        }
+      }
     }
   }
 

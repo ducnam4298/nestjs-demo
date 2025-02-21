@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -9,7 +9,7 @@ import { DatabaseService } from '../database/database.service';
 import { RolesService } from '../roles';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { UsersService } from '../users';
+import { UsersModule, UsersService } from '../users';
 
 @Global()
 @Module({
@@ -23,6 +23,7 @@ import { UsersService } from '../users';
         signOptions: { expiresIn: '1h' },
       }),
     }),
+    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
   providers: [
