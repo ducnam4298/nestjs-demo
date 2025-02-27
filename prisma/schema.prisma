@@ -29,20 +29,22 @@ enum StatusUser {
 }
 
 model User {
-  id         String    @id @default(uuid())
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id         String      @id @default(uuid())
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   name       String
-  email      String    @unique
-  phone      String    @unique
+  email      String      @unique
+  phone      String      @unique
   token      Token[]
-  login      Login?    @relation
-  employeeId String?   @unique
-  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  login      Login?      @relation
+  employeeId String?
+  employee   Employee?   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   roleId     String?
-  role       Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  isActive   Boolean   @default(false)
+  role       Role?       @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  isActive   Boolean     @default(false)
   status     StatusUser? @default(PENDING)
+
+  @@index([id, name, email, phone, employeeId, roleId])
 }
 
 model Token {
@@ -54,6 +56,8 @@ model Token {
   refreshToken String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
+
+  @@index([id, userId])
 }
 
 model Login {
@@ -66,6 +70,8 @@ model Login {
   password  String
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([username, email, phone, userId])
 }
 
 model Employee {
@@ -74,6 +80,8 @@ model Employee {
   updatedAt DateTime @updatedAt
   position  Position
   users     User[]
+
+  @@index([id, position])
 }
 
 model Role {
@@ -83,6 +91,8 @@ model Role {
   name        String       @unique
   permissions Permission[]
   users       User[]
+
+  @@index([id, name])
 }
 
 model Permission {
@@ -93,4 +103,6 @@ model Permission {
   entity    String
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId    String
+
+  @@index([id, name, entity, roleId])
 }

@@ -4,6 +4,13 @@ import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  constructor() {
+    super();
+    process.on('beforeExit', () => {
+      void this.handleBeforeExit();
+    });
+  }
+
   async onModuleInit() {
     try {
       await this.$connect();
@@ -21,12 +28,6 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
     await this.$disconnect();
   }
 
-  constructor() {
-    super();
-    process.on('beforeExit', () => {
-      void this.handleBeforeExit();
-    });
-  }
   async handleBeforeExit() {
     await this.$disconnect();
     LoggerService.log('🔌 Database disconnected', DatabaseService.name);

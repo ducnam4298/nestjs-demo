@@ -8,21 +8,18 @@ import { CreatePermissionDto, UpdatePermissionDto } from './permissions.dto';
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionsService.create(createPermissionDto);
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
   findAll() {
     return this.permissionsService.findAll();
   }
 
   @UseGuards(AccessAuthGuard)
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
     return this.permissionsService.update(id, updatePermissionDto);

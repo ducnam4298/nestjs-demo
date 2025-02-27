@@ -7,12 +7,12 @@ export class PasswordService {
   constructor() {}
 
   async hashPassword(password: string): Promise<string> {
-    LoggerService.log('Hashing password', PasswordService.name);
+    LoggerService.log('ℹ️ Hashing password', PasswordService.name);
     return bcrypt.hash(password, 10);
   }
 
   async comparePassword(password: string, hash: string): Promise<boolean> {
-    LoggerService.log('Comparing password', PasswordService.name);
+    LoggerService.log('ℹ️ Comparing password', PasswordService.name);
     return bcrypt.compare(password, hash);
   }
 }

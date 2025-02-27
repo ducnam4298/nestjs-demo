@@ -9,7 +9,6 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
 import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import {
@@ -22,7 +21,6 @@ import {
   UpdateUserRoleDto,
 } from './users.dto';
 
-@SkipThrottle()
 @Controller('users')
 @UseGuards(AccessAuthGuard)
 export class UsersController {
@@ -43,19 +41,16 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get()
   findAll(@Query() findAllUserDto: FindAllUserDto) {
     return this.usersService.findAll(findAllUserDto);
   }
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
@@ -71,7 +66,6 @@ export class UsersController {
     return this.usersService.updateUserRole(id, updateUserRoleDto);
   }
 
-  @Throttle({ short: { ttl: 1000, limit: 1 } })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

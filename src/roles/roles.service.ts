@@ -2,31 +2,46 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { DEFAULT_PERMISSION } from '../shared/constants';
 import { DatabaseService } from '../database/database.service';
 import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
+import { LoggerService } from '../logger';
 
 @Injectable()
 export class RolesService {
   constructor(private databaseService: DatabaseService) {}
 
+  // Gán permissions cho role
   async assignPermissionsForRole(assignPermissionsForRole: AssignPermissionsForRole) {
     const { id, permissionIds } = assignPermissionsForRole;
-    const role = await this.databaseService.role.update({
-      where: { id },
-      data: {
-        permissions: {
-          connect: permissionIds.map(permissionId => ({
-            id: permissionId,
-          })),
-        },
-      },
-    });
+    LoggerService.log(`ℹ️ Assigning permissions for role with ID: ${id}`, RolesService.name);
 
-    return role;
+    try {
+      const role = await this.databaseService.role.update({
+        where: { id },
+        data: {
+          permissions: {
+            connect: permissionIds.map(permissionId => ({
+              id: permissionId,
+            })),
+          },
+        },
+      });
+      LoggerService.log(
+        `✅ Permissions assigned successfully for role with ID: ${id}`,
+        RolesService.name
+      );
+      return role;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      LoggerService.error(`❌ Error assigning permissions for role with ID: ${id}`, errorMessage);
+      throw error;
+    }
   }
 
   async create(createRoleDto: CreateRoleDto) {
     const { name } = createRoleDto;
+    LoggerService.log(`ℹ️ Creating role with name: ${name}`, RolesService.name);
+
     try {
-      return this.databaseService.role.create({
+      const role = await this.databaseService.role.create({
         data: {
           name: name,
           permissions: {
@@ -38,43 +53,63 @@ export class RolesService {
         },
         include: { permissions: true },
       });
+      LoggerService.log(`✅ Role created successfully: ${name}`, RolesService.name);
+      return role;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      LoggerService.error(`❌ Error creating role: ${name}`, errorMessage);
       throw new BadRequestException('Role creation failed');
     }
   }
 
   async findAll(findAllRoleDto?: FindAllRoleDto) {
+    LoggerService.log('ℹ️ Finding all roles', RolesService.name);
+
     if (findAllRoleDto) {
-      return this.databaseService.role.findMany({
+      return await this.databaseService.role.findMany({
         where: findAllRoleDto,
         include: { permissions: true },
       });
     }
+
     return this.databaseService.role.findMany({ include: { permissions: true } });
   }
 
   async findOne(id: string) {
+    LoggerService.log(`ℹ️ Finding role with ID: ${id}`, RolesService.name);
     return this.databaseService.role.findUnique({ where: { id }, include: { permissions: true } });
   }
 
   async hasAllDefaultPermissions(id: string): Promise<boolean> {
+    LoggerService.log(`ℹ️ Checking default permissions for role with ID: ${id}`, RolesService.name);
+
     const role = await this.databaseService.role.findUnique({
       where: { id },
       include: { permissions: true },
     });
 
     if (!role) return false;
+
     const existingPermissions = new Set(role.permissions.map(p => p.entity));
-    return DEFAULT_PERMISSION.every(perm => existingPermissions.has(perm));
+    const hasAllPermissions = DEFAULT_PERMISSION.every(perm => existingPermissions.has(perm));
+
+    LoggerService.log(
+      `ℹ️ Role with ID: ${id} has all default permissions: ${hasAllPermissions}`,
+      RolesService.name
+    );
+    return hasAllPermissions;
   }
 
   async updateRolePermissions(id: string) {
+    LoggerService.log(`ℹ️ Updating permissions for role with ID: ${id}`, RolesService.name);
+
     const role = await this.databaseService.role.findUnique({
       where: { id },
       include: { permissions: true },
     });
 
     if (!role) {
+      LoggerService.error(`❌ Role not found with ID: ${id}`, RolesService.name);
       throw new NotFoundException('Role not found');
     }
     const existingPermissions = role.permissions.map(p => p.name);
@@ -91,13 +126,20 @@ export class RolesService {
       });
     }
 
-    return this.databaseService.role.findUnique({
+    const updatedRole = await this.databaseService.role.findUnique({
       where: { id },
       include: { permissions: true },
     });
+
+    LoggerService.log(
+      `✅ Permissions updated successfully for role with ID: ${id}`,
+      RolesService.name
+    );
+    return updatedRole;
   }
 
   async remove(id: string) {
+    LoggerService.log(`ℹ️ Removing role with ID: ${id}`, RolesService.name);
     return this.databaseService.role.delete({ where: { id } });
   }
 }
