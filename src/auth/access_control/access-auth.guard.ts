@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../../database/database.service';
 import { LoggerService } from '../../logger/logger.service';
+import { IS_PUBLIC_KEY } from './access.decorator';
 
 @Injectable()
 export class AccessAuthGuard implements CanActivate {
@@ -13,6 +14,14 @@ export class AccessAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
@@ -29,7 +38,7 @@ export class AccessAuthGuard implements CanActivate {
       }
 
       const decoded = this.jwtService.verify(token);
-      const userId = decoded.id;
+      const userId = decoded.userId;
 
       const user = await this.databaseService.user.findUnique({
         where: { id: userId },

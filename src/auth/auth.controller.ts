@@ -5,8 +5,9 @@ import { AccessAuthGuard } from './access_control/access-auth.guard';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { ChangePasswordDto } from '../users/users.dto';
 import { UsersService } from '../users';
+import { AuthThrottle, Public } from './access_control/access.decorator';
 
-@SkipThrottle()
+@AuthThrottle()
 @Controller('auth')
 @UseGuards(AccessAuthGuard)
 export class AuthController {
@@ -15,25 +16,25 @@ export class AuthController {
     private readonly usersService: UsersService
   ) {}
 
-  @UseGuards()
+  @Public()
   @Patch(':id/password')
   async changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto) {
     return this.usersService.changePassword(id, changePasswordDto);
   }
 
-  @UseGuards()
+  @Public()
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
-  @UseGuards()
+  @Public()
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  @UseGuards()
+  @Public()
   @Post('register-superadmin')
   async registerSuperAdmin() {
     return this.authService.registerSuperAdmin();
@@ -49,7 +50,7 @@ export class AuthController {
     return this.authService.logoutAll(req.user.userId);
   }
 
-  @UseGuards()
+  @Public()
   @Post('refresh')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);

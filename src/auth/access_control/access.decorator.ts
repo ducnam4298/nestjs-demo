@@ -1,6 +1,9 @@
 import { SetMetadata } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
 export const Permissions = (...permissions: string[]) => SetMetadata('permissions', permissions);
 
 export const Roles = (...permissions: string[]) => SetMetadata('roles', permissions);
