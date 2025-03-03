@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import bcrypt from 'bcrypt';
-import { LoggerService } from '../logger';
+import { LoggerService } from '@/logger';
 
 @Injectable()
 export class PasswordService {

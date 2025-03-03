@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { Position } from '@prisma/client';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../shared/dtos';
+import { PaginationDto } from '@/shared/dtos';
 
 export class CreateEmployeeDto {
   @IsNotEmpty()

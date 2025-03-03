@@ -1,3 +1,0 @@
-Thư mục này được sử dụng để lưu trữ các file log, ghi lại mọi hoạt động diễn ra trên server. Mỗi yêu cầu gửi đến đều được ghi nhận, kèm theo phản hồi từ hệ thống, giúp theo dõi, phân tích và khắc phục sự cố một cách hiệu quả.
-
-This directory is used to store log files, capturing every action that takes place on the server. Each incoming request is recorded along with the system’s response, allowing for efficient tracking, analysis, and troubleshooting.

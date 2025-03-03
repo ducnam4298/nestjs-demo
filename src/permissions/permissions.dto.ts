@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import { PaginationDto } from '../shared/dtos';
+import { PaginationDto } from '@/shared/dtos';
 
 export class CreatePermissionDto {
   @IsString()

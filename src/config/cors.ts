@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import { allowedOrigin } from './allowedOrigin';
+import allowedOrigin from './allowedOrigin';
 
 const corsOrigin = {
-  origin: (origin: any, callback: any) => {
+  origin: (origin: any, callback: (err: Error | null, success?: boolean) => void) => {
     if (allowedOrigin.indexOf(origin) != -1 || !origin) {
       callback(null, true);
     } else {
@@ -12,4 +11,4 @@ const corsOrigin = {
   originSuccessStatus: 200,
 };
 
-export { corsOrigin };
+export default corsOrigin;

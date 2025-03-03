@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
-import { LoggerService } from '../logger';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
 
 @Injectable()
 export class EmployeesService {

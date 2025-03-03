@@ -4,12 +4,12 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { AccessStrategy } from './access_control/access.strategy';
-import { DatabaseService } from '../database/database.service';
-import { RolesService } from '../roles';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { UsersModule, UsersService } from '../users';
+import { DatabaseService } from '@/database';
+import { AccessStrategy } from '@/access_control/access.strategy';
+import { UsersModule, UsersService } from '@/users';
+import { RolesService } from '@/roles';
 
 @Global()
 @Module({

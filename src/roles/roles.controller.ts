@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Param, Delete, UseGuards, Patch } from '@nestjs/common';
-import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
-import { Permissions, Roles } from '../auth/access_control/access.decorator';
 import { RolesService } from './roles.service';
 import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
+import { Permissions, Roles } from '@/access_control/access.decorator';
+import { AccessAuthGuard } from '@/access_control';
 
 @UseGuards(AccessAuthGuard)
 @Controller('roles')

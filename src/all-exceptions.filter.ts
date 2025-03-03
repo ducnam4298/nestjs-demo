@@ -5,11 +5,12 @@ import {
   HttpStatus,
   UnauthorizedException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import { LoggerService } from './logger';
+import { LoggerService } from '@/logger';
 
 type MyResponseObj = {
   statusCode: number;
@@ -25,6 +26,11 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+
+    if (exception instanceof NotFoundException) {
+      LoggerService.warn(`🚨 Not Found: ${request.url} -> Redirecting to /api`);
+      return response.redirect(302, '/api');
+    }
 
     const myResponseObj: MyResponseObj = {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { RolesService } from '../roles';
-import { LoggerService } from '../logger';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { UsersService } from '../users/users.service';
+import { DatabaseService } from '@/database';
+import { RolesService } from '@/roles';
+import { LoggerService } from '@/logger';
+import { UsersService } from '@/users';
 
 @Injectable()
 export class AuthService {

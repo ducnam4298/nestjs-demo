@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import bcrypt from 'bcrypt';
-import { DatabaseService } from '../database/database.service';
 import {
   ActivationDto,
   ChangePasswordDto,
@@ -9,9 +8,10 @@ import {
   UpdateUserDto,
   UpdateUserRoleDto,
 } from './users.dto';
-import { LoggerService } from '../logger';
-import { RolesService } from '../roles';
-import { PasswordService } from '../auth/password.service';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
+import { RolesService } from '@/roles';
+import { PasswordService } from '@/auth';
 
 @Injectable()
 export class UsersService {

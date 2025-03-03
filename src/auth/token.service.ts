@@ -7,8 +7,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
-import { DatabaseService } from '../database/database.service';
-import { LoggerService } from '../logger';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
 
 interface Permission {
   name: string;

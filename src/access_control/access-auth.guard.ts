@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './access.decorator';
-import { TokenService } from '../token.service';
-import { DatabaseService } from '../../database/database.service';
-import { LoggerService } from '../../logger/logger.service';
+import { TokenService } from '@/auth/token.service';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
 
 @Injectable()
 export class AccessAuthGuard implements CanActivate {

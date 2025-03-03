@@ -1,11 +1,11 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { AllExceptionsFilter } from './all-exceptions.filter';
-import { AccessInterceptor } from './auth/access_control/access-interceptor';
-import { AppModule } from './app';
-import { PORT } from './shared/constants';
 import { ValidationPipe } from '@nestjs/common';
-import { corsOrigin } from './config/cors';
-import { LoggerService } from './logger/logger.service';
+import { AllExceptionsFilter } from './all-exceptions.filter';
+import { AppModule } from './app';
+import { AccessInterceptor } from '@/access_control';
+import { PORT } from '@/shared/constants';
+import { corsOrigin } from '@/config';
+import { LoggerService } from '@/logger';
 
 async function bootstrap() {
   try {

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
-import { LoggerService } from '../logger';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
 @Injectable()
 export class PermissionsService {
   constructor(private databaseService: DatabaseService) {}

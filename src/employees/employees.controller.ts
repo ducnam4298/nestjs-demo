@@ -11,10 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
-import { LoggerService } from '../logger/logger.service';
-import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
-import { Roles, Permissions } from '../auth/access_control/access.decorator';
+import { Roles, Permissions } from '@/access_control/access.decorator';
+import { AccessAuthGuard } from '@/access_control';
+import { LoggerService } from '@/logger';
 
 @UseGuards(AccessAuthGuard)
 @Controller('employees')

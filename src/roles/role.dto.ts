@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { IsArray, IsNotEmpty, IsString } from 'class-validator';
-import { PaginationDto } from '../shared/dtos';
+import { PaginationDto } from '@/shared/dtos';
 
 export class CreateRoleDto {
   @IsString()

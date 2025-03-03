@@ -1,11 +1,10 @@
 import { Controller, Post, Body, Req, UseGuards, Patch, Param } from '@nestjs/common';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { AccessAuthGuard } from './access_control/access-auth.guard';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
-import { ChangePasswordDto } from '../users/users.dto';
-import { UsersService } from '../users';
-import { AuthThrottle, Public } from './access_control/access.decorator';
+import { AccessAuthGuard } from '@/access_control';
+import { AuthThrottle, Public } from '@/access_control/access.decorator';
+import { ChangePasswordDto } from '@/users/users.dto';
+import { UsersService } from '@/users';
 
 @AuthThrottle()
 @Controller('auth')

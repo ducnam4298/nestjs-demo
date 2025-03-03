@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DEFAULT_PERMISSION } from '../shared/constants';
-import { DatabaseService } from '../database/database.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
-import { LoggerService } from '../logger';
+import { DEFAULT_PERMISSION } from '@/shared/constants';
+import { DatabaseService } from '@/database';
+import { LoggerService } from '@/logger';
 
 @Injectable()
 export class RolesService {

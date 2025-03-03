@@ -10,7 +10,6 @@ import {
   Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { AccessAuthGuard } from '../auth/access_control/access-auth.guard';
 import {
   ActivationDto,
   ChangePasswordDto,
@@ -20,7 +19,8 @@ import {
   UpdateUserDto,
   UpdateUserRoleDto,
 } from './users.dto';
-import { Permissions, Roles } from 'auth/access_control/access.decorator';
+import { Permissions, Roles } from '@/access_control/access.decorator';
+import { AccessAuthGuard } from '@/access_control';
 
 @Controller('users')
 @UseGuards(AccessAuthGuard)
