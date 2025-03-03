@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
@@ -19,6 +24,13 @@ interface User {
   role?: Role | null;
 }
 
+interface TokenPayload {
+  userId: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
+
 @Injectable()
 export class TokenService {
   constructor(
@@ -26,6 +38,25 @@ export class TokenService {
     private readonly configService: ConfigService,
     private readonly databaseService: DatabaseService
   ) {}
+
+  verifyToken(token: string): TokenPayload {
+    try {
+      return this.jwtService.verify(token);
+    } catch (error) {
+      LoggerService.warn('🚨 Token verification failed', TokenService.name);
+
+      if (error instanceof Error) {
+        if (error.name === 'TokenExpiredError') {
+          throw new UnauthorizedException('Token has expired');
+        }
+        if (error.name === 'JsonWebTokenError') {
+          throw new UnauthorizedException('Invalid token');
+        }
+      }
+
+      throw new UnauthorizedException('Token verification failed');
+    }
+  }
 
   async generateTokens(user: User, deviceId: string) {
     if (!user || !user.id) throw new UnauthorizedException('Invalid user data');
@@ -69,7 +100,7 @@ export class TokenService {
           TokenService.name
         );
 
-        const newToken = await db.token.create({
+        await db.token.create({
           data: { userId, deviceId, accessToken, refreshToken: hashedRefreshToken },
         });
 
@@ -81,9 +112,10 @@ export class TokenService {
         return { accessToken, refreshToken };
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error('❌ Token generation failed', errorMessage);
-      throw new Error('Token generation failed');
+      throw new InternalServerErrorException(`❌ Token generation failed, ${errorMessage}`);
     }
   }
 

@@ -20,7 +20,8 @@ export class PermissionsService {
 
       return permission;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error creating permission: ${name}`, errorMessage);
       throw error;
     }
@@ -50,7 +51,8 @@ export class PermissionsService {
 
       return updatedPermission;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error updating permission with ID: ${id}`, errorMessage);
       throw error;
     }

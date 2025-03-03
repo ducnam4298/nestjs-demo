@@ -22,7 +22,7 @@ async function bootstrap() {
     await app.listen(PORT);
     LoggerService.log(`🚀 Server is running on http://localhost:${PORT}/api`, 'Bootstrap');
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.stack : String(error);
+    const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     LoggerService.error('❌ Error starting server', errorMessage);
     process.exit(1);
   }

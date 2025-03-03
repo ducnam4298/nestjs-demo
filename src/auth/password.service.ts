@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { LoggerService } from '../logger';
 
@@ -7,12 +7,28 @@ export class PasswordService {
   constructor() {}
 
   async hashPassword(password: string): Promise<string> {
-    LoggerService.log('ℹ️ Hashing password', PasswordService.name);
-    return bcrypt.hash(password, 10);
+    try {
+      LoggerService.log('ℹ️ Hashing password', PasswordService.name);
+      return await bcrypt.hash(password, 10);
+    } catch (error) {
+      LoggerService.error('❌ Error hashing password', PasswordService.name);
+      if (!(error instanceof BadRequestException)) {
+        throw new BadRequestException('Error hashing password');
+      }
+      throw error;
+    }
   }
 
   async comparePassword(password: string, hash: string): Promise<boolean> {
-    LoggerService.log('ℹ️ Comparing password', PasswordService.name);
-    return bcrypt.compare(password, hash);
+    try {
+      LoggerService.log('ℹ️ Comparing password', PasswordService.name);
+      return await bcrypt.compare(password, hash);
+    } catch (error) {
+      LoggerService.error('❌ Error comparing password', PasswordService.name);
+      if (!(error instanceof BadRequestException)) {
+        throw new BadRequestException('Error comparing password');
+      }
+      throw error;
+    }
   }
 }

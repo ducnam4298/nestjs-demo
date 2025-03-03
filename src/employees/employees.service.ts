@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { LoggerService } from '../logger';
@@ -17,7 +17,8 @@ export class EmployeesService {
       LoggerService.log(`✅ Employee created successfully: ${employee.id}`, EmployeesService.name);
       return employee;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error creating employee`, errorMessage);
       throw error;
     }
@@ -38,7 +39,8 @@ export class EmployeesService {
         : await this.databaseService.employee.findMany();
       return employees;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error finding employees`, errorMessage);
       throw error;
     }
@@ -51,10 +53,11 @@ export class EmployeesService {
       const employee = await this.databaseService.employee.findUnique({
         where: { id },
       });
-      if (!employee) throw new Error('Employee not found');
+      if (!employee) throw new NotFoundException('Employee not found');
       return employee;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error finding employee with ID: ${id}`, errorMessage);
       throw error;
     }
@@ -70,7 +73,8 @@ export class EmployeesService {
       });
       return employee;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error updating employee with ID: ${id}`, errorMessage);
       throw error;
     }
@@ -85,7 +89,8 @@ export class EmployeesService {
       });
       return employee;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error removing employee with ID: ${id}`, errorMessage);
       throw error;
     }

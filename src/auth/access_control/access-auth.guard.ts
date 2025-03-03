@@ -1,16 +1,16 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
+import { IS_PUBLIC_KEY } from './access.decorator';
+import { TokenService } from '../token.service';
 import { DatabaseService } from '../../database/database.service';
 import { LoggerService } from '../../logger/logger.service';
-import { IS_PUBLIC_KEY } from './access.decorator';
 
 @Injectable()
 export class AccessAuthGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private databaseService: DatabaseService,
-    private jwtService: JwtService
+    private tokenService: TokenService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -37,7 +37,7 @@ export class AccessAuthGuard implements CanActivate {
         throw new ForbiddenException('Access denied: Invalid token format');
       }
 
-      const decoded = this.jwtService.verify(token);
+      const decoded = this.tokenService.verifyToken(token);
       const userId = decoded.userId;
 
       const user = await this.databaseService.user.findUnique({
@@ -84,12 +84,10 @@ export class AccessAuthGuard implements CanActivate {
       );
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
-      LoggerService.error(
-        '❌ Access denied due to invalid token or insufficient permissions',
-        errorMessage
-      );
-      throw new ForbiddenException('Access denied: Invalid token or insufficient permissions');
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      LoggerService.error(`Access denied: ${errorMessage}`);
+      throw error;
     }
   }
 }

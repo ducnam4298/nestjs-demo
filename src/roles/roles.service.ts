@@ -30,7 +30,8 @@ export class RolesService {
       );
       return role;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error assigning permissions for role with ID: ${id}`, errorMessage);
       throw error;
     }
@@ -56,9 +57,10 @@ export class RolesService {
       LoggerService.log(`✅ Role created successfully: ${name}`, RolesService.name);
       return role;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error(`❌ Error creating role: ${name}`, errorMessage);
-      throw new BadRequestException('Role creation failed');
+      throw error;
     }
   }
 

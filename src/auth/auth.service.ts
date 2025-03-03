@@ -64,9 +64,10 @@ export class AuthService {
 
       return { id };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error('❌ Registration failed', errorMessage);
-      throw new Error('Registration failed');
+      throw error;
     }
   }
 
@@ -130,9 +131,10 @@ export class AuthService {
 
       return { id };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error('❌ SuperAdmin registration failed', errorMessage);
-      throw new Error('❌SuperAdmin registration failed');
+      throw error;
     }
   }
 
@@ -159,9 +161,10 @@ export class AuthService {
 
       return this.tokenService.generateTokens(userLogin.user, deviceId);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.stack : String(error);
+      const errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
       LoggerService.error('❌ Login failed', errorMessage);
-      throw new Error('Login failed');
+      throw error;
     }
   }
 
