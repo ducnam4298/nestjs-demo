@@ -1,14 +1,15 @@
 {
-  "name": "my-nest-project",
-  "version": "0.0.1",
+  "name": "nestjs-demo",
+  "version": "1.0.0",
   "description": "",
-  "author": "",
-  "private": true,
+  "author": "NateDev",
+  "private": "false",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "prisma generate && nest build",
+    "build": "nest build && prisma generate",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "//start": "nest start",
+    "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -18,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "postinstall": "prisma generate"
+    "postinstall": "yarn build"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -38,7 +39,7 @@
     "global": "^4.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "prisma": "^6.4.0",
+    "prisma": "^6.4.1",
     "redis": "^4.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
