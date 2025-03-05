@@ -76,7 +76,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       success: false,
-      message: process.env.NODE_ENV === 'production' ? 'An error occurred.' : message,
+      message: process.env.VERCEL_ENV === 'production' ? 'An error occurred.' : message,
     };
 
     response.status(status).json(errorResponseObj);

@@ -1,90 +1,121 @@
 import { ConsoleLogger, Injectable } from '@nestjs/common';
-import fs, { promises as fsPromises } from 'fs';
-import path from 'path';
-// import cron from 'node-cron'; // Nếu bạn sử dụng node-cron
+import * as fs from 'fs';
+import * as path from 'path';
+import { promises as fsPromises } from 'fs';
+// import cron from 'node-cron'; // Nếu sử dụng node-cron
 
 @Injectable()
 export class LoggerService extends ConsoleLogger {
   private static instance: LoggerService = new LoggerService();
+  private logQueue: string[] = [];
+  private isWriting = false;
+  private logDir = process.env.TMPDIR || '/tmp';
+  private logFilePath = path.join(this.logDir, `${new Date().toISOString().slice(0, 10)}.log`);
 
   private constructor() {
     super();
+    this.ensureLogDirectory();
+    this.startLogWorker();
+    this.scheduleLogCleanup();
+  }
 
+  private ensureLogDirectory() {
+    if (!fs.existsSync(this.logDir)) {
+      fs.mkdirSync(this.logDir, { recursive: true });
+    }
+  }
+
+  private async writeLogsToFile() {
+    if (this.isWriting || this.logQueue.length === 0) return;
+    this.isWriting = true;
+
+    const now = new Date();
+    const formattedTime = now.toLocaleString('en-US', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+      timeZone: 'America/Chicago',
+    });
+    const logsToWrite = this.logQueue.map(log => `${formattedTime}\t${log}`).join('\n') + '\n';
+    this.logQueue = [];
+
+    try {
+      await fs.promises.appendFile(this.logFilePath, logsToWrite);
+      await this.cleanupOldLogs();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('🚨 Logger Error:', errorMessage);
+      const errorLogPath = path.join(this.logDir, 'error.log');
+      await fs.promises.appendFile(
+        errorLogPath,
+        `[${new Date().toISOString()}] Logger Error: ${errorMessage}\n`
+      );
+    }
+
+    this.isWriting = false;
+  }
+
+  private startLogWorker() {
+    setInterval(() => {
+      void this.writeLogsToFile();
+    }, 500);
+  }
+
+  private scheduleLogCleanup() {
     // Cách 1: Sử dụng setInterval để dọn dẹp logs mỗi ngày (24 giờ)
     setInterval(
       () => {
-        void this.cleanupOldLogs(path.join(__dirname, '..', '..', 'logs'));
+        void this.cleanupOldLogs();
       },
       24 * 60 * 60 * 1000
     ); // 24 giờ
 
     // Cách 2: Sử dụng node-cron để dọn dẹp logs vào nửa đêm mỗi ngày
     // cron.schedule('0 0 * * *', () => {
-    //   this.cleanupOldLogs(path.join(__dirname, '..', '..', 'logs'));
+    //   void this.cleanupOldLogs();
     //   console.log('✅ Log cleanup completed');
     // });
   }
 
-  private async logToFile(entry: string) {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const formattedEntry = `${now.toLocaleString('en-US', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-      timeZone: 'America/Chicago',
-    })}\t${entry}\n`;
-
+  private async cleanupOldLogs() {
     try {
-      const logDir = path.join(__dirname, '..', '..', 'logs');
-      const logFilePath = path.join(logDir, `${dateStr}.log`);
+      const files = await fsPromises.readdir(this.logDir);
+      const thirtyDaysInMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-      if (!fs.existsSync(logDir)) {
-        await fsPromises.mkdir(logDir, { recursive: true });
+      for (const file of files) {
+        if (!file.endsWith('.log')) continue;
+
+        const filePath = path.join(this.logDir, file);
+        const stats = await fsPromises.stat(filePath);
+
+        if (stats.mtimeMs < thirtyDaysInMs) {
+          await fsPromises.unlink(filePath);
+          console.log(`✅ Deleted old log file: ${file}`);
+        }
       }
-
-      await fsPromises.appendFile(logFilePath, formattedEntry);
-      await this.cleanupOldLogs(logDir); // Dọn dẹp log sau khi ghi mới
-    } catch (e) {
-      console.error('❌ Failed to write log:', e);
+    } catch (error) {
+      console.error('❌ Error cleaning up logs:', error);
     }
   }
 
-  // Hàm dọn dẹp các file log cũ hơn 30 ngày
-  private async cleanupOldLogs(logDir: string) {
-    const files = await fsPromises.readdir(logDir);
-    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-    const currentTime = Date.now();
-
-    for (const file of files) {
-      const filePath = path.join(logDir, file);
-      const stats = await fsPromises.stat(filePath);
-
-      if (currentTime - stats.mtimeMs > thirtyDaysInMs) {
-        try {
-          await fsPromises.unlink(filePath);
-          console.log(`✅ Deleted log file: ${file}`);
-        } catch (error) {
-          console.error(`❌ Failed to delete log file: ${file}`, error);
-        }
-      }
-    }
+  private queueLog(log: string) {
+    this.logQueue.push(log);
   }
 
   static log(message: any, context?: string) {
-    const entry = `${context || 'Log'}\t${message}`;
-    void this.instance.logToFile(entry);
-    super.prototype.log.call(this.instance, message, context);
+    const logEntry = `[INFO] ${context || 'Application'}: ${message}`;
+    console.log(logEntry);
+    this.instance.queueLog(logEntry);
   }
 
-  static error(message: any, stackOrContext?: string) {
-    const entry = `${stackOrContext || 'Error'}\t${message}`;
-    void this.instance.logToFile(entry);
-    super.prototype.error.call(this.instance, message, stackOrContext);
+  static error(message: any, context?: string) {
+    const logEntry = `[ERROR] ${context || 'Application'}: ${message}`;
+    console.error(logEntry);
+    this.instance.queueLog(logEntry);
   }
 
   static warn(message: any, context?: string) {
-    const entry = `${context || 'Warning'}\t${message}`;
-    void this.instance.logToFile(entry);
-    super.prototype.warn.call(this.instance, message, context);
+    const logEntry = `[WARN] ${context || 'Application'}: ${message}`;
+    console.warn(logEntry);
+    this.instance.queueLog(logEntry);
   }
 }
