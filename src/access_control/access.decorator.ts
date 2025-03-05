@@ -6,7 +6,7 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 export const Permissions = (...permissions: string[]) => SetMetadata('permissions', permissions);
 
-export const Roles = (...permissions: string[]) => SetMetadata('roles', permissions);
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
 
 /**
  * **🔐 Auth Throttle - Giới hạn tốc độ cho các API xác thực**

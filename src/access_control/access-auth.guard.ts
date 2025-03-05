@@ -1,9 +1,16 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './access.decorator';
 import { TokenService } from '@/auth/token.service';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/logger';
+import { NameStatusUser } from '@/shared/constants';
 
 @Injectable()
 export class AccessAuthGuard implements CanActivate {
@@ -18,36 +25,49 @@ export class AccessAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    if (isPublic) return true;
 
-    if (isPublic) {
-      return true;
-    }
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
-
     if (!authHeader || typeof authHeader !== 'string') {
       LoggerService.warn('🚨 Missing or invalid authorization header', AccessAuthGuard.name);
-      throw new ForbiddenException('Access denied: Missing or invalid authorization header');
+      throw new ForbiddenException('Missing or invalid authorization header');
     }
 
-    try {
-      const token = authHeader.split(' ')[1];
-      if (!token) {
-        LoggerService.warn('🚨 Invalid token format', AccessAuthGuard.name);
-        throw new ForbiddenException('Access denied: Invalid token format');
-      }
+    const deviceId = request.headers['device-id'];
+    if (!deviceId) {
+      LoggerService.warn('🚨 Missing device ID', AccessAuthGuard.name);
+      throw new UnauthorizedException('Missing device ID');
+    }
 
-      const decoded = this.tokenService.verifyToken(token);
-      const userId = decoded.userId;
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('Invalid authorization header format');
+    }
+
+    const payload = this.tokenService.verifyToken(token);
+
+    try {
+      const userId = payload.userId;
 
       const user = await this.databaseService.user.findUnique({
         where: { id: userId },
         include: { role: { include: { permissions: true } } },
       });
 
-      if (!user || !user.role) {
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      if (!user.role) {
         LoggerService.warn(`🚨 User ${userId} has no assigned role`, AccessAuthGuard.name);
-        throw new ForbiddenException('Access denied: User has no assigned role');
+        throw new ForbiddenException('User has no assigned role');
+      }
+
+      if (!user.isActive) {
+        const { status } = user;
+        LoggerService.warn(`🚨 User account is ${NameStatusUser(status)}`, AccessAuthGuard.name);
+        throw new ForbiddenException(`User account is ${NameStatusUser(status)}`);
       }
 
       const userRole = user.role.name;
@@ -62,7 +82,7 @@ export class AccessAuthGuard implements CanActivate {
           `🚨 User ${userId} lacks required roles: ${requiredRoles.join(', ')}`,
           AccessAuthGuard.name
         );
-        throw new ForbiddenException(`Access denied: Required roles: ${requiredRoles.join(', ')}`);
+        throw new ForbiddenException(`Required roles: ${requiredRoles.join(', ')}`);
       }
 
       if (requiredPermissions.length > 0) {
@@ -72,12 +92,11 @@ export class AccessAuthGuard implements CanActivate {
             `🚨 User ${userId} lacks required permissions: ${requiredPermissions.join(', ')}`,
             AccessAuthGuard.name
           );
-          throw new ForbiddenException(
-            `Access denied: Required permissions: ${requiredPermissions.join(', ')}`
-          );
+          throw new ForbiddenException(`Required permissions: ${requiredPermissions.join(', ')}`);
         }
       }
 
+      request.user = user;
       LoggerService.log(
         `✅ User ${userId} authorized with role: ${userRole}`,
         AccessAuthGuard.name
@@ -86,7 +105,7 @@ export class AccessAuthGuard implements CanActivate {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error(`Access denied: ${errorMessage}`);
+      LoggerService.error(`❌ Access denied: ${errorMessage}`, AccessAuthGuard.name);
       throw error;
     }
   }
