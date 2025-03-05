@@ -4,23 +4,17 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from '@/database';
-import { AuthModule } from '@/auth';
-import { UsersModule } from '@/users';
 import { AccessModule } from '@/access_control';
-import { RolesModule } from '@/roles';
-import { PermissionsModule } from '@/permissions';
 import { LoggerMiddleware } from '@/logger';
 import { throttlerConfig } from '@/config';
+import { CoreModule } from '@/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Load biến môi trường từ .env
     ThrottlerModule.forRoot(throttlerConfig),
     DatabaseModule,
-    AuthModule,
-    UsersModule,
-    RolesModule,
-    PermissionsModule,
+    CoreModule,
     AccessModule,
   ],
   controllers: [AppController],

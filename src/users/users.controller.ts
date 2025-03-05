@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
   ActivationDto,
@@ -20,10 +10,8 @@ import {
   UpdateUserRoleDto,
 } from './users.dto';
 import { Permissions, Roles } from '@/access_control/access.decorator';
-import { AccessAuthGuard } from '@/access_control';
 
 @Controller('users')
-@UseGuards(AccessAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

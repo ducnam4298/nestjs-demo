@@ -1,14 +1,12 @@
-import { Controller, Post, Body, Req, UseGuards, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, Patch, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
-import { AccessAuthGuard } from '@/access_control';
 import { AuthThrottle, Public } from '@/access_control/access.decorator';
 import { ChangePasswordDto } from '@/users/users.dto';
 import { UsersService } from '@/users';
 
 @AuthThrottle()
 @Controller('auth')
-@UseGuards(AccessAuthGuard)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

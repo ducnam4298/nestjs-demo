@@ -6,10 +6,9 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { DatabaseService } from '@/database';
 import { AccessStrategy } from '@/access_control/access.strategy';
-import { UsersModule, UsersService } from '@/users';
-import { RolesService } from '@/roles';
+import { UsersModule } from '@/users';
+import { RolesModule } from '@/roles';
 
 @Global()
 @Module({
@@ -23,18 +22,9 @@ import { RolesService } from '@/roles';
         signOptions: { expiresIn: '1h' },
       }),
     }),
-    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    AccessStrategy,
-    DatabaseService,
-    RolesService,
-    PasswordService,
-    TokenService,
-    UsersService,
-  ],
+  providers: [AuthService, AccessStrategy, PasswordService, TokenService],
   exports: [AuthService, JwtModule, PasswordService, TokenService],
 })
 export class AuthModule {}

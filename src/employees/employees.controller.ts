@@ -1,22 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  Ip,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Ip } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { Roles, Permissions } from '@/access_control/access.decorator';
-import { AccessAuthGuard } from '@/access_control';
 import { LoggerService } from '@/logger';
 
-@UseGuards(AccessAuthGuard)
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
