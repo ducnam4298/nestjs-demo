@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import bcrypt from 'bcrypt';
 import {
   ActivationDto,
   ChangePasswordDto,
@@ -12,6 +11,7 @@ import { DatabaseService } from '@/database';
 import { LoggerService } from '@/logger';
 import { RolesService } from '@/roles';
 import { PasswordService } from '@/auth';
+import { maskEmail, retryTransaction } from '@/shared/utils';
 
 @Injectable()
 export class UsersService {
@@ -39,47 +39,55 @@ export class UsersService {
     });
     if (!user || !user.login) throw new NotFoundException('User or login credentials not found');
 
-    const passwordMatches = await bcrypt.compare(
+    const passwordMatches = await this.passwordService.comparePassword(
       changePasswordDto.oldPassword,
       user.login.password
     );
     if (!passwordMatches) throw new BadRequestException('Old password is incorrect');
 
-    const newPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    const newHashedPassword = await this.passwordService.hashPassword(
+      changePasswordDto.newPassword
+    );
     return this.databaseService.login.update({
       where: { id: user.login.id },
-      data: { password: newPassword },
+      data: { password: newHashedPassword },
     });
   }
 
   async create(createUserDto: CreateUserDto) {
     const { name, email, phone, roleId } = createUserDto;
-    LoggerService.log(`ℹ️ Creating new user: ${email}`, UsersService.name);
+    LoggerService.log(`ℹ️ Creating new user: ${maskEmail(email)}`, UsersService.name);
     const hashedPassword = await this.passwordService.hashPassword('123123');
+
     const existingUser = await this.databaseService.user.findFirst({
       where: { OR: [{ email }, { phone }] },
     });
     if (existingUser) throw new BadRequestException('Email or phone number is already in use');
-    const id = await this.databaseService.$transaction(async db => {
-      let role = roleId
-        ? await db.role.findUnique({ where: { id: roleId } })
-        : await db.role.findUnique({ where: { name: 'USER' } });
 
+    const id = await retryTransaction<string>(async () => {
+      let role = roleId
+        ? await this.databaseService.$transaction(db =>
+            db.role.findUnique({ where: { id: roleId } })
+          )
+        : await this.databaseService.$transaction(db =>
+            db.role.findUnique({ where: { name: 'USER' } })
+          );
       if (!role) role = await this.rolesService.create({ name: 'USER' });
-      const createdUser = await db.user.create({
-        data: {
-          name,
-          roleId: role.id,
-          email,
-          phone,
-          login: {
-            create: { email, phone, password: hashedPassword },
+      const createdUser = await this.databaseService.$transaction(async db =>
+        db.user.create({
+          data: {
+            name,
+            roleId: role.id,
+            email,
+            phone,
+            login: { create: { email, phone, password: hashedPassword } },
           },
-        },
-      });
+        })
+      );
       LoggerService.log(`✅ User ${createdUser.id} created successfully`, UsersService.name);
       return createdUser.id;
-    });
+    }, UsersService.name);
+
     return { id };
   }
 
