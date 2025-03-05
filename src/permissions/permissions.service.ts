@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/logger';
@@ -8,17 +8,34 @@ export class PermissionsService {
 
   async create(createPermissionDto: CreatePermissionDto) {
     const { name, entity, roleId } = createPermissionDto;
-    LoggerService.log(`ℹ️ Creating permission: ${name}`, PermissionsService.name);
-    try {
-      const permission = await this.databaseService.permission.create({
-        data: {
-          name,
-          entity,
-          role: { connect: { id: roleId } },
-        },
-      });
+    LoggerService.log(
+      `ℹ️ Creating permission: ${name} for entity: ${entity}`,
+      PermissionsService.name
+    );
 
-      return permission;
+    try {
+      const roleExists = await this.databaseService.role.findUnique({ where: { id: roleId } });
+      if (!roleExists) {
+        throw new NotFoundException(`Role with ID ${roleId} not found`);
+      }
+
+      const existingPermission = await this.databaseService.permission.findFirst({
+        where: { name, entity, roleId },
+      });
+      if (existingPermission) {
+        LoggerService.warn(
+          `🚨 Permission ${name} for entity ${entity} already exists`,
+          PermissionsService.name
+        );
+        return existingPermission;
+      }
+
+      // Tạo permission mới
+      const newPermission = await this.databaseService.permission.create({
+        data: { name, entity, roleId },
+      });
+      LoggerService.log(`✅ Permission created successfully: ${name}`, PermissionsService.name);
+      return newPermission;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : String(error);

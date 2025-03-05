@@ -8,27 +8,43 @@ import { LoggerService } from '@/logger';
 export class RolesService {
   constructor(private databaseService: DatabaseService) {}
 
-  // Gán permissions cho role
   async assignPermissionsForRole(assignPermissionsForRole: AssignPermissionsForRole) {
     const { id, permissionIds } = assignPermissionsForRole;
     LoggerService.log(`ℹ️ Assigning permissions for role with ID: ${id}`, RolesService.name);
 
     try {
-      const role = await this.databaseService.role.update({
+      const existingRole = await this.databaseService.role.findUnique({
+        where: { id },
+        include: { permissions: true },
+      });
+
+      if (!existingRole) {
+        throw new NotFoundException(`Role with ID ${id} not found`);
+      }
+
+      const existingPermissionIds = new Set(existingRole.permissions.map(p => p.id));
+      const newPermissionIds = permissionIds.filter(pid => !existingPermissionIds.has(pid));
+
+      if (newPermissionIds.length === 0) {
+        LoggerService.warn(`🚨 No new permissions to assign for role ID: ${id}`, RolesService.name);
+        return existingRole;
+      }
+
+      const updatedRole = await this.databaseService.role.update({
         where: { id },
         data: {
           permissions: {
-            connect: permissionIds.map(permissionId => ({
-              id: permissionId,
-            })),
+            connect: newPermissionIds.map(permissionId => ({ id: permissionId })),
           },
         },
+        include: { permissions: true },
       });
+
       LoggerService.log(
         `✅ Permissions assigned successfully for role with ID: ${id}`,
         RolesService.name
       );
-      return role;
+      return updatedRole;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : String(error);

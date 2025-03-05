@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { StatusUser } from '@prisma/client';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
@@ -6,6 +7,7 @@ import { DatabaseService } from '@/database';
 import { RolesService } from '@/roles';
 import { LoggerService } from '@/logger';
 import { UsersService } from '@/users';
+import { UpdateUserDto } from '@/users/users.dto';
 
 @Injectable()
 export class AuthService {
@@ -95,16 +97,22 @@ export class AuthService {
       const id = await this.databaseService.$transaction(async db => {
         if (existingAdmin) {
           LoggerService.warn('🚨 SuperAdmin already exists. Checking role...', AuthService.name);
+          const updateData: UpdateUserDto = {};
+
+          if (!existingAdmin.isActive) {
+            updateData.isActive = true;
+            updateData.status = StatusUser.ACTIVATED;
+          }
+
           if (existingAdmin.roleId !== role.id) {
+            updateData.roleId = role.id;
+          }
+          if (Object.keys(updateData).length > 0) {
             await db.user.update({
               where: { id: existingAdmin.id },
-              data: { roleId: role.id },
+              data: updateData,
             });
-            LoggerService.log(
-              `✅ Role updated for SuperAdmin ${existingAdmin.id}`,
-              AuthService.name
-            );
-            return existingAdmin.id;
+            LoggerService.log(`✅ Updated SuperAdmin ${existingAdmin.id}`, AuthService.name);
           }
           return existingAdmin.id;
         }
@@ -115,6 +123,8 @@ export class AuthService {
             email,
             phone: '0000000000',
             roleId: role.id,
+            isActive: true,
+            status: StatusUser.ACTIVATED,
             login: {
               create: {
                 username: 'admin',

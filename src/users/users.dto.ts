@@ -32,7 +32,13 @@ export class FindAllUserDto extends PartialType(PaginationDto) {
   phone?: string;
 }
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
+export class UpdateUserDto extends PartialType(CreateUserDto) {
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsString()
+  status?: StatusUser;
+}
 
 export class ChangePasswordDto {
   @IsString()
