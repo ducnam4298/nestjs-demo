@@ -9,7 +9,16 @@ export class LoggerService extends ConsoleLogger {
   private static instance: LoggerService = new LoggerService();
   private logQueue: string[] = [];
   private isWriting = false;
-  private logDir = process.env.TMPDIR || '/tmp';
+  private logDir: string = (() => {
+    if (process.env.VERCEL) {
+      return '/tmp';
+    }
+    const localDir = path.join(__dirname, '..', '..', 'tmp');
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    return localDir;
+  })();
   private logFilePath = path.join(this.logDir, `${new Date().toISOString().slice(0, 10)}.log`);
 
   private constructor() {
