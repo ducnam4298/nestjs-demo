@@ -127,4 +127,10 @@ export class LoggerService extends ConsoleLogger {
     console.warn(logEntry);
     this.instance.queueLog(logEntry);
   }
+
+  static debug(message: any, context?: string) {
+    const logEntry = `[DEBUG] ${context || 'Application'}: ${message}`;
+    console.debug(logEntry);
+    this.instance.queueLog(logEntry);
+  }
 }

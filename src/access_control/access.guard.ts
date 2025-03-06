@@ -13,7 +13,7 @@ import { LoggerService } from '@/logger';
 import { NameStatusUser } from '@/shared/constants';
 
 @Injectable()
-export class AccessAuthGuard implements CanActivate {
+export class AccessGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private databaseService: DatabaseService,
@@ -30,13 +30,13 @@ export class AccessAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
     if (!authHeader || typeof authHeader !== 'string') {
-      LoggerService.warn('🚨 Missing or invalid authorization header', AccessAuthGuard.name);
+      LoggerService.warn('🚨 Missing or invalid authorization header', AccessGuard.name);
       throw new ForbiddenException('Missing or invalid authorization header');
     }
 
     const deviceId = request.headers['device-id'];
     if (!deviceId) {
-      LoggerService.warn('🚨 Missing device ID', AccessAuthGuard.name);
+      LoggerService.warn('🚨 Missing device ID', AccessGuard.name);
       throw new UnauthorizedException('Missing device ID');
     }
 
@@ -60,13 +60,13 @@ export class AccessAuthGuard implements CanActivate {
       }
 
       if (!user.role) {
-        LoggerService.warn(`🚨 User ${userId} has no assigned role`, AccessAuthGuard.name);
+        LoggerService.warn(`🚨 User ${userId} has no assigned role`, AccessGuard.name);
         throw new ForbiddenException('User has no assigned role');
       }
 
       if (!user.isActive) {
         const { status } = user;
-        LoggerService.warn(`🚨 User account is ${NameStatusUser(status)}`, AccessAuthGuard.name);
+        LoggerService.warn(`🚨 User account is ${NameStatusUser(status)}`, AccessGuard.name);
         throw new ForbiddenException(`User account is ${NameStatusUser(status)}`);
       }
 
@@ -80,7 +80,7 @@ export class AccessAuthGuard implements CanActivate {
       if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
         LoggerService.warn(
           `🚨 User ${userId} lacks required roles: ${requiredRoles.join(', ')}`,
-          AccessAuthGuard.name
+          AccessGuard.name
         );
         throw new ForbiddenException(`Required roles: ${requiredRoles.join(', ')}`);
       }
@@ -90,22 +90,24 @@ export class AccessAuthGuard implements CanActivate {
         if (!hasPermission) {
           LoggerService.warn(
             `🚨 User ${userId} lacks required permissions: ${requiredPermissions.join(', ')}`,
-            AccessAuthGuard.name
+            AccessGuard.name
           );
           throw new ForbiddenException(`Required permissions: ${requiredPermissions.join(', ')}`);
         }
       }
 
       request.user = user;
-      LoggerService.log(
-        `✅ User ${userId} authorized with role: ${userRole}`,
-        AccessAuthGuard.name
-      );
+      LoggerService.log(`✅ User ${userId} authorized with role: ${userRole}`, AccessGuard.name);
       return true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error(`❌ Access denied: ${errorMessage}`, AccessAuthGuard.name);
+      const errorStack = error instanceof Error ? error.stack : String(error);
+      LoggerService.error(
+        `❌ Access denied: ${errorMessage}\nStack: ${errorStack}`,
+        AccessGuard.name
+      );
+
       throw error;
     }
   }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import {
@@ -40,8 +39,10 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     LoggerService.log(`ℹ️ Validating token for userId: ${payload.userId}`, AccessStrategy.name);
     if (!payload || !payload.userId) {
+      LoggerService.warn('🚨 Token validation failed: Invalid payload', AccessStrategy.name);
       throw new UnauthorizedException('Invalid token payload');
     }
+    LoggerService.log(`✅ Token validated for userId: ${payload.userId}`, AccessStrategy.name);
     await Promise.resolve();
     return payload;
   }

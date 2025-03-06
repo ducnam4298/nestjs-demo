@@ -27,7 +27,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let message: string = 'Internal server error';
 
     if (exception instanceof NotFoundException) {
-      LoggerService.warn(`🚨 Not Found: ${request.url} -> Redirecting to /api`);
+      LoggerService.warn(`🚨 Not Found: ${request.url}`);
+
+      const acceptHeader = request.headers.accept || '';
+      const isApiRequest = acceptHeader.includes('application/json');
+
+      if (isApiRequest) {
+        response.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Resource not found',
+          path: request.url,
+          success: false,
+        });
+        return;
+      }
+
       return response.redirect(302, '/api');
     }
 
@@ -66,9 +80,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = 'Database internal error occurred';
     }
 
+    const stackTrace = exception instanceof Error ? exception.stack : null;
     LoggerService.error(
       `❌ Error processing ${request.method} ${request.url}`,
-      exception instanceof Error ? exception.stack : ''
+      stackTrace ?? 'No stack trace available'
     );
 
     const errorResponseObj = {

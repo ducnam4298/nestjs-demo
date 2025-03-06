@@ -7,7 +7,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
 import { LoggerService } from '@/logger';
 
@@ -15,8 +15,17 @@ import { LoggerService } from '@/logger';
 export class AccessInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request: Request = context.switchToHttp().getRequest();
+    const { method, url, headers, ip } = request;
     const response: Response = context.switchToHttp().getResponse();
+    LoggerService.log(
+      `[REQUEST] ${method} ${url} - IP: ${ip} - User-Agent: ${headers['user-agent']}`
+    );
+    const now = Date.now();
     return next.handle().pipe(
+      tap(() => {
+        const timeTaken = Date.now() - now;
+        LoggerService.log(`[RESPONSE] ${method} ${url} - ${timeTaken}ms`);
+      }),
       map(data => {
         if (request.method === 'POST' && response.statusCode === 201) {
           response.status(200);

@@ -9,7 +9,9 @@ import { LoggerService } from '@/logger';
 
 const handleShutdown = (app: INestApplication) => {
   return () => {
-    LoggerService.warn('🚨 Received shutdown signal. Closing application gracefully...');
+    LoggerService.warn(
+      `🚨 Received shutdown signal at ${new Date().toISOString()}. Closing application gracefully...`
+    );
     app
       .close()
       .then(() => {
@@ -44,11 +46,13 @@ const bootstrap = async () => {
     process.on('SIGTERM', handleShutdown(app));
   } catch (error) {
     const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const errorStack = error instanceof Error ? error.stack : String(error);
     LoggerService.error('❌ Error starting server', errorMessage);
+    LoggerService.debug(errorStack);
 
     if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('database')) {
       LoggerService.warn('🔄 Database connection failed. Retrying in 5 seconds...');
-      setTimeout(() => void bootstrap, 5000);
+      setTimeout(() => bootstrap, 5000);
     } else {
       LoggerService.error('❌ Critical error occurred. Shutting down...');
       process.exit(1);
