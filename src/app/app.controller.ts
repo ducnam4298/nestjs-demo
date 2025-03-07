@@ -1,8 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { Public } from '@/access_control/access.decorator';
+import { Metadata } from '@/access_control';
 
-@Public()
+@Metadata.Public()
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}

@@ -1,49 +1,49 @@
-import { Controller, Get, Post, Body, Param, Delete, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch, Query } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
-import { Permissions, Roles } from '@/access_control/access.decorator';
+import { Metadata } from '@/access_control';
 
 @Controller('roles')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('CREATE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('CREATE')
   @Post()
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.rolesService.create(createRoleDto);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('CREATE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('CREATE')
   @Post()
   assignPermissionsForRole(@Body() assignPermissionsForRole: AssignPermissionsForRole) {
     return this.rolesService.assignPermissionsForRole(assignPermissionsForRole);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('VIEWS')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('VIEWS')
   @Get()
-  findAll(@Param('findAllRoleDto') findAllRoleDto?: FindAllRoleDto) {
+  findAll(@Query() findAllRoleDto: FindAllRoleDto) {
     return this.rolesService.findAll(findAllRoleDto);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('DETAIL')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('DETAIL')
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.rolesService.findOne(id);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('UPDATE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('UPDATE')
   @Patch(':id/permissions')
   async updateRolePermissions(@Param('id') id: string) {
     return this.rolesService.updateRolePermissions(id);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('DELETE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('DELETE')
   @Delete(':id')
   remove(@Param(':id') id: string) {
     return this.rolesService.remove(id);

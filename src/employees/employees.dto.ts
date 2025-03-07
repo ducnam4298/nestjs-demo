@@ -1,6 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { Position } from '@prisma/client';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from '@/shared/dtos';
 
 export class CreateEmployeeDto {
@@ -10,6 +10,7 @@ export class CreateEmployeeDto {
 }
 
 export class FindAllEmployeeDto extends PartialType(PaginationDto) {
+  @IsOptional()
   @IsString()
   position?: Position;
 }

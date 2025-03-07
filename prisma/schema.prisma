@@ -31,7 +31,7 @@ enum StatusUser {
 model User {
   id         String      @id @default(uuid())
   createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  updatedAt  DateTime?
   name       String
   email      String      @unique
   phone      String      @unique
@@ -48,36 +48,36 @@ model User {
 }
 
 model Token {
-  id           String   @id @default(uuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id           String    @id @default(uuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime?
   deviceId     String
   accessToken  String
   refreshToken String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
 
   @@index([id, userId])
 }
 
 model Login {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  username  String?  @unique
-  email     String?  @unique
-  phone     String?  @unique
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  username  String?   @unique
+  email     String?   @unique
+  phone     String?   @unique
   password  String
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([username, email, phone, userId])
 }
 
 model Employee {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
   position  Position
   users     User[]
 
@@ -87,7 +87,7 @@ model Employee {
 model Role {
   id          String       @id @default(uuid())
   createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  updatedAt   DateTime?
   name        String       @unique
   permissions Permission[]
   users       User[]
@@ -96,12 +96,12 @@ model Role {
 }
 
 model Permission {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
   name      String
   entity    String
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId    String
 
   @@index([id, name, entity, roleId])

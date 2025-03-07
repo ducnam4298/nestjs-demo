@@ -3,6 +3,7 @@ import {
   ActivationDto,
   ChangePasswordDto,
   CreateUserDto,
+  FindAllUserDto,
   UpdateStatusDto,
   UpdateUserDto,
   UpdateUserRoleDto,
@@ -11,7 +12,12 @@ import { DatabaseService } from '@/database';
 import { LoggerService } from '@/logger';
 import { RolesService } from '@/roles';
 import { PasswordService } from '@/auth';
-import { maskEmail, retryTransaction } from '@/shared/utils';
+import {
+  getValidSortField,
+  maskEmail,
+  retryTransaction,
+  // sanitizeFilters,
+} from '@/shared/utils';
 
 @Injectable()
 export class UsersService {
@@ -25,14 +31,19 @@ export class UsersService {
     LoggerService.log(`ℹ️ Activating user with ID: ${id}`, UsersService.name);
     const user = await this.databaseService.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
-    return this.databaseService.user.update({
+    const updatedUser = await this.databaseService.user.update({
       where: { id },
       data: { isActive: activationDto.activate },
     });
+    LoggerService.log(`✅ User with ID: ${id} activation updated`, UsersService.name);
+    return updatedUser;
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {
+    const { oldPassword, newPassword } = changePasswordDto;
     LoggerService.log(`ℹ️ Changing password for user with ID: ${id}`, UsersService.name);
+    if (!oldPassword || !newPassword)
+      throw new BadRequestException('Name, email, and phone are required');
     const user = await this.databaseService.user.findUnique({
       where: { id },
       include: { login: true },
@@ -40,23 +51,25 @@ export class UsersService {
     if (!user || !user.login) throw new NotFoundException('User or login credentials not found');
 
     const passwordMatches = await this.passwordService.comparePassword(
-      changePasswordDto.oldPassword,
+      oldPassword,
       user.login.password
     );
     if (!passwordMatches) throw new BadRequestException('Old password is incorrect');
 
-    const newHashedPassword = await this.passwordService.hashPassword(
-      changePasswordDto.newPassword
-    );
-    return this.databaseService.login.update({
+    const newHashedPassword = await this.passwordService.hashPassword(newPassword);
+    const updatedLogin = await this.databaseService.login.update({
       where: { id: user.login.id },
       data: { password: newHashedPassword },
     });
+    LoggerService.log(`✅ Password updated for user with ID: ${id}`, UsersService.name);
+    return updatedLogin;
   }
 
   async create(createUserDto: CreateUserDto) {
     const { name, email, phone, roleId } = createUserDto;
-    LoggerService.log(`ℹ️ Creating new user: ${maskEmail(email)}`, UsersService.name);
+    LoggerService.log(`ℹ️ Creating new user: ${maskEmail(email ?? '')}`, UsersService.name);
+    if (!name || !email || !phone)
+      throw new BadRequestException('Name, email, and phone are required');
     const hashedPassword = await this.passwordService.hashPassword('123123');
 
     const existingUser = await this.databaseService.user.findFirst({
@@ -65,19 +78,16 @@ export class UsersService {
     if (existingUser) throw new BadRequestException('Email or phone number is already in use');
 
     const id = await retryTransaction<string>(async () => {
-      let role = roleId
-        ? await this.databaseService.$transaction(db =>
-            db.role.findUnique({ where: { id: roleId } })
-          )
-        : await this.databaseService.$transaction(db =>
-            db.role.findUnique({ where: { name: 'USER' } })
-          );
-      if (!role) role = await this.rolesService.create({ name: 'USER' });
+      const role = roleId
+        ? await this.rolesService.findOne(roleId)
+        : await this.databaseService.role.findUnique({ where: { name: 'USER' } });
+      let newRoleId: string = '';
+      if (!role) newRoleId = await this.rolesService.create({ name: 'USER' });
       const createdUser = await this.databaseService.$transaction(async db =>
         db.user.create({
           data: {
             name,
-            roleId: role.id,
+            roleId: newRoleId,
             email,
             phone,
             login: { create: { email, phone, password: hashedPassword } },
@@ -91,28 +101,42 @@ export class UsersService {
     return { id };
   }
 
-  async findAll(query: { skip?: number; take?: number; search?: string }) {
-    const { skip = 0, take = 10, search } = query;
-    LoggerService.log(`ℹ️ Finding users with filter: ${search || 'No filter'}`, UsersService.name);
-    return this.databaseService.user.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { phone: { contains: search, mode: 'insensitive' } },
-            ],
-          }
-        : {},
-      skip: skip || 0,
-      take: take || 10,
+  async findAll(findAllUserDto: FindAllUserDto) {
+    const { skip, take, sortBy, sortOrder, ...filters } = findAllUserDto;
+    LoggerService.log(
+      `ℹ️ Finding users with filter: ${JSON.stringify(filters)}, skip: ${skip}, take: ${take}`,
+      UsersService.name
+    );
+
+    // const cleanedFilters = sanitizeFilters(filters);
+    const hasUpdated = await this.databaseService.user.findFirst({
+      where: { updatedAt: { not: null } },
+      select: { updatedAt: true },
     });
+
+    const { sortBy: finalSortBy, sortOrder: finalSortOrder } = await getValidSortField(
+      'user',
+      sortBy,
+      sortOrder,
+      !!hasUpdated
+    );
+
+    const users = await this.databaseService.user.findMany({
+      // where: Object.keys(cleanedFilters).length ? cleanedFilters : undefined,
+      where: Object.keys(filters).length ? filters : undefined,
+      skip,
+      take,
+      orderBy: finalSortBy ? { [finalSortBy]: finalSortOrder } : undefined,
+    });
+    LoggerService.log(`✅ Found ${users.length} users`, UsersService.name);
+    return users;
   }
 
   async findOne(id: string) {
     LoggerService.log(`ℹ️ Finding user with ID: ${id}`, UsersService.name);
     const user = await this.databaseService.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
+    LoggerService.log(`✅ User with ID: ${id} found`, UsersService.name);
     return user;
   }
 
@@ -130,9 +154,13 @@ export class UsersService {
       });
       if (existingUser) throw new BadRequestException('Email or phone number is already in use');
     }
-    return this.databaseService.user.update({ where: { id }, data: updateUserDto });
+    const updatedUser = await this.databaseService.user.update({
+      where: { id },
+      data: updateUserDto,
+    });
+    LoggerService.log(`✅ User with ID: ${id} updated successfully`, UsersService.name);
+    return updatedUser;
   }
-
   async updateStatus(id: string, updateStatusDto: UpdateStatusDto) {
     LoggerService.log(`ℹ️ Updating status for user with ID: ${id}`, UsersService.name);
     const user = await this.databaseService.user.findUnique({ where: { id } });
@@ -155,8 +183,12 @@ export class UsersService {
 
   async remove(id: string) {
     LoggerService.log(`ℹ️ Removing user with ID: ${id}`, UsersService.name);
-    const user = await this.databaseService.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('User not found');
-    return this.databaseService.user.delete({ where: { id } });
+    return this.databaseService.$transaction(async db => {
+      const user = await db.user.findUnique({ where: { id } });
+      if (!user) throw new NotFoundException('User not found');
+      await db.user.delete({ where: { id } });
+      LoggerService.log(`✅ User with ID: ${id} removed successfully`, UsersService.name);
+      return id;
+    });
   }
 }

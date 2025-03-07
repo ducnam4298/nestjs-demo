@@ -86,65 +86,53 @@ export class TokenService {
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-    try {
-      return await this.databaseService.$transaction(async db => {
-        LoggerService.log(
-          `ℹ️ Deleting old tokens for user ${userId} on device ${deviceId}`,
-          TokenService.name
-        );
+    return await this.databaseService.$transaction(async db => {
+      LoggerService.log(
+        `ℹ️ Deleting old tokens for user ${userId} on device ${deviceId}`,
+        TokenService.name
+      );
 
-        await db.token.deleteMany({ where: { userId, deviceId } });
+      await db.token.deleteMany({ where: { userId, deviceId } });
 
-        LoggerService.log(
-          `ℹ️ Creating new tokens for user ${userId} on device ${deviceId}`,
-          TokenService.name
-        );
+      LoggerService.log(
+        `ℹ️ Creating new tokens for user ${userId} on device ${deviceId}`,
+        TokenService.name
+      );
 
-        await db.token.create({
-          data: { userId, deviceId, accessToken, refreshToken: hashedRefreshToken },
-        });
-
-        LoggerService.log(
-          `✅ New tokens created for user ${userId} on device ${deviceId}`,
-          TokenService.name
-        );
-
-        return { accessToken, refreshToken };
+      await db.token.create({
+        data: { userId, deviceId, accessToken, refreshToken: hashedRefreshToken },
       });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error('❌ Token generation failed', errorMessage);
-      throw new InternalServerErrorException(`❌ Token generation failed, ${errorMessage}`);
-    }
+
+      LoggerService.log(
+        `✅ New tokens created for user ${userId} on device ${deviceId}`,
+        TokenService.name
+      );
+
+      return { accessToken, refreshToken };
+    });
   }
 
   async refreshAccessToken(refreshToken: string, deviceId: string) {
-    try {
-      const decoded = this.jwtService.verify<{ userId: string; deviceId: string }>(refreshToken, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
+    const decoded = this.jwtService.verify<{ userId: string; deviceId: string }>(refreshToken, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+    });
 
-      LoggerService.log(`ℹ️ Refreshing access token for user ${decoded.userId}`, TokenService.name);
+    LoggerService.log(`ℹ️ Refreshing access token for user ${decoded.userId}`, TokenService.name);
 
-      const tokenRecord = await this.databaseService.token.findFirst({
-        where: { userId: decoded.userId, deviceId },
-        include: { user: { include: { role: { include: { permissions: true } } } } },
-      });
+    const tokenRecord = await this.databaseService.token.findFirst({
+      where: { userId: decoded.userId, deviceId },
+      include: { user: { include: { role: { include: { permissions: true } } } } },
+    });
 
-      if (!tokenRecord || !tokenRecord.user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      if (!(await bcrypt.compare(refreshToken, tokenRecord.refreshToken))) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      return this.generateTokens(tokenRecord.user, deviceId);
-    } catch (error) {
-      LoggerService.error('❌Refresh token validation failed', TokenService.name);
-      throw new UnauthorizedException('Invalid or expired refresh token');
+    if (!tokenRecord || !tokenRecord.user) {
+      throw new UnauthorizedException('User not found');
     }
+
+    if (!(await bcrypt.compare(refreshToken, tokenRecord.refreshToken))) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    return this.generateTokens(tokenRecord.user, deviceId);
   }
 
   async invalidateToken(userId: string, deviceId: string) {
@@ -152,11 +140,25 @@ export class TokenService {
       `ℹ️ Invalidating token for user ${userId} on device ${deviceId}`,
       TokenService.name
     );
-    await this.databaseService.token.deleteMany({ where: { userId, deviceId } });
+    return this.databaseService.$transaction(async db => {
+      await db.token.deleteMany({ where: { userId, deviceId } });
+      LoggerService.log(
+        `✅ TokenService invalidating successfully for user: ${userId}`,
+        TokenService.name
+      );
+      return userId;
+    });
   }
 
   async invalidateAllTokens(userId: string) {
     LoggerService.log(`ℹ️ Invalidating all tokens for user ${userId}`, TokenService.name);
-    await this.databaseService.token.deleteMany({ where: { userId } });
+    return this.databaseService.$transaction(async db => {
+      await db.token.deleteMany({ where: { userId } });
+      LoggerService.log(
+        `✅ TokenService invalidating all successfully for user: ${userId}`,
+        TokenService.name
+      );
+      return userId;
+    });
   }
 }

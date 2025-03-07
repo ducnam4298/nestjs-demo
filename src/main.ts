@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AllExceptionsFilter } from './all-exceptions.filter';
-import { AppModule } from './app';
+import { AllExceptionsFilter } from '@/all-exceptions.filter';
+import { AppModule } from '@/app';
 import { AccessInterceptor } from '@/access_control';
 import { corsOrigin } from '@/config';
 import { LoggerService } from '@/logger';
+// import { CleanQueryInterceptor } from '@/interceptors';
 
 const handleShutdown = (app: INestApplication) => {
   return () => {
@@ -34,6 +35,7 @@ const bootstrap = async () => {
       new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })
     );
     app.useGlobalInterceptors(new AccessInterceptor());
+    // app.useGlobalInterceptors(new AccessInterceptor(), new CleanQueryInterceptor());
 
     app.setGlobalPrefix('api');
     app.enableCors(corsOrigin);

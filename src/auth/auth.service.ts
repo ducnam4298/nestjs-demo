@@ -34,46 +34,44 @@ export class AuthService {
       throw new BadRequestException('Username, email, or phone is required');
     }
 
-    try {
-      const existingUser = await this.databaseService.user.findFirst({
-        where: { OR: [{ email }, { phone }] },
-      });
+    const existingUser = await this.databaseService.user.findFirst({
+      where: { OR: [{ email }, { phone }] },
+    });
+    const existingLogin = await this.databaseService.login.findFirst({
+      where: { OR: [{ email }, { username }, { phone }] },
+    });
 
-      if (existingUser) {
-        LoggerService.error('❌ Email or phone number is already in use', AuthService.name);
-        throw new BadRequestException('Email or phone number is already in use');
-      }
-
-      const id = await retryTransaction<string>(async () => {
-        let role = roleId
-          ? await this.databaseService.$transaction(db =>
-              db.role.findUnique({ where: { id: roleId } })
-            )
-          : await this.databaseService.$transaction(db =>
-              db.role.findUnique({ where: { name: 'USER' } })
-            );
-        if (!role) role = await this.rolesService.create({ name: 'USER' });
-        const createdUser = await this.databaseService.$transaction(async db =>
-          db.user.create({
-            data: {
-              name,
-              roleId: role.id,
-              email,
-              phone,
-              login: { create: { email, phone, password: hashedPassword } },
-            },
-          })
-        );
-        LoggerService.log(`✅ User ${createdUser.id} registered successfully`, AuthService.name);
-        return createdUser.id;
-      }, AuthService.name);
-      return { id };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error('❌ Registration failed', errorMessage);
-      throw error;
+    if (existingLogin || existingUser) {
+      LoggerService.error(
+        `❌ Email or ${existingLogin ? 'username or' : ''} phone number is already in use`,
+        AuthService.name
+      );
+      throw new BadRequestException(
+        `Email or ${existingLogin ? 'username or' : ''} phone number is already in use`
+      );
     }
+
+    const id = await retryTransaction<string>(async () => {
+      const role = roleId
+        ? await this.rolesService.findOne(roleId)
+        : await this.databaseService.role.findUnique({ where: { name: 'USER' } });
+      let newRoleId: string = '';
+      if (!role) newRoleId = await this.rolesService.create({ name: 'USER' });
+      const createdUser = await this.databaseService.$transaction(async db =>
+        db.user.create({
+          data: {
+            name,
+            roleId: role?.id ?? newRoleId,
+            email,
+            phone,
+            login: { create: { email, username, phone, password: hashedPassword } },
+          },
+        })
+      );
+      LoggerService.log(`✅ User ${createdUser.id} registered successfully`, AuthService.name);
+      return createdUser.id;
+    }, AuthService.name);
+    return id;
   }
 
   async registerSuperAdmin() {
@@ -82,107 +80,93 @@ export class AuthService {
     const email = 'admin@gmail.com';
     LoggerService.log('ℹ️ Registering SuperAdmin', AuthService.name);
 
-    try {
-      let role = await this.databaseService.role.findUnique({ where: { name: roleName } });
-
-      if (!role) {
-        role = await this.rolesService.create({ name: roleName });
+    const role = await this.databaseService.role.findUnique({ where: { name: roleName } });
+    let newRoleId: string;
+    if (!role) {
+      newRoleId = await this.rolesService.create({ name: roleName });
+      await this.rolesService.updateRolePermissions(newRoleId);
+    } else {
+      const hasAllPermissions = await this.rolesService.hasAllDefaultPermissions(role.id);
+      if (!hasAllPermissions) {
         await this.rolesService.updateRolePermissions(role.id);
-      } else {
-        const hasAllPermissions = await this.rolesService.hasAllDefaultPermissions(role.id);
-        if (!hasAllPermissions) {
-          await this.rolesService.updateRolePermissions(role.id);
-        }
       }
+    }
 
-      const existingAdmin = await this.databaseService.user.findUnique({ where: { email } });
+    const existingAdmin = await this.databaseService.user.findUnique({ where: { email } });
 
-      const id = await retryTransaction<string>(async () => {
-        return await this.databaseService.$transaction(async db => {
-          if (existingAdmin) {
-            LoggerService.warn('🚨 SuperAdmin already exists. Checking role...', AuthService.name);
-            const updateData: UpdateUserDto = {};
+    const id = await retryTransaction<string>(async () => {
+      return await this.databaseService.$transaction(async db => {
+        if (existingAdmin) {
+          LoggerService.warn('🚨 SuperAdmin already exists. Checking role...', AuthService.name);
+          const updateData: UpdateUserDto = {};
 
-            if (!existingAdmin.isActive) {
-              updateData.isActive = true;
-              updateData.status = StatusUser.ACTIVATED;
-            }
-
-            if (existingAdmin.roleId !== role.id) {
-              updateData.roleId = role.id;
-            }
-            if (Object.keys(updateData).length > 0) {
-              await db.user.update({
-                where: { id: existingAdmin.id },
-                data: updateData,
-              });
-              LoggerService.log(`✅ Updated SuperAdmin ${existingAdmin.id}`, AuthService.name);
-            }
-            return existingAdmin.id;
+          if (!existingAdmin.isActive) {
+            updateData.isActive = true;
+            updateData.status = StatusUser.ACTIVATED;
           }
 
-          const createdUser = await db.user.create({
-            data: {
-              name: 'admin',
-              email,
-              phone: '0000000000',
-              roleId: role.id,
-              isActive: true,
-              status: StatusUser.ACTIVATED,
-              login: {
-                create: {
-                  username: 'admin',
-                  email,
-                  phone: '0000000000',
-                  password: hashedPassword,
-                },
+          if (!role) updateData.roleId = newRoleId;
+          else if (existingAdmin.roleId !== role.id) updateData.roleId = role.id;
+
+          if (Object.keys(updateData).length > 0) {
+            await db.user.update({
+              where: { id: existingAdmin.id },
+              data: updateData,
+            });
+            LoggerService.log(`✅ Updated SuperAdmin ${existingAdmin.id}`, AuthService.name);
+          }
+          return existingAdmin.id;
+        }
+
+        const createdUser = await db.user.create({
+          data: {
+            name: 'admin',
+            email,
+            phone: '0000000000',
+            roleId: role ? role.id : newRoleId,
+            isActive: true,
+            status: StatusUser.ACTIVATED,
+            login: {
+              create: {
+                username: 'admin',
+                email,
+                phone: '0000000000',
+                password: hashedPassword,
               },
             },
-          });
-          LoggerService.log(`✅ SuperAdmin created successfully`, AuthService.name);
-          return createdUser.id;
+          },
         });
-      }, AuthService.name);
-      return { id };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error('❌ SuperAdmin registration failed', errorMessage);
-      throw error;
-    }
+        LoggerService.log(`✅ SuperAdmin created successfully`, AuthService.name);
+        return createdUser.id;
+      });
+    }, AuthService.name);
+    return id;
   }
 
   async login(loginDto: LoginDto) {
     const { identifier, password, deviceId } = loginDto;
     LoggerService.log(`ℹ️ User login attempt from device: ${deviceId}`, AuthService.name);
 
-    try {
-      const userLogin = await this.databaseService.login.findFirst({
-        where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
-        include: { user: { include: { role: { include: { permissions: true } } } } },
-      });
+    const userLogin = await this.databaseService.login.findFirst({
+      where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
+      include: { user: { include: { role: { include: { permissions: true } } } } },
+    });
 
-      if (!userLogin) {
-        LoggerService.warn('🚨 Failed login attempt: User not found', AuthService.name);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      const isPasswordValid = await this.passwordService.comparePassword(
-        password,
-        userLogin.password
-      );
-      if (!isPasswordValid) {
-        LoggerService.warn('🚨 Failed login attempt: Incorrect password', AuthService.name);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      return this.tokenService.generateTokens(userLogin.user, deviceId);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      LoggerService.error('❌ Login failed', errorMessage);
-      throw error;
+    if (!userLogin) {
+      LoggerService.warn('🚨 Failed login attempt: User not found', AuthService.name);
+      throw new UnauthorizedException('Invalid credentials');
     }
+
+    const isPasswordValid = await this.passwordService.comparePassword(
+      password,
+      userLogin.password
+    );
+    if (!isPasswordValid) {
+      LoggerService.warn('🚨 Failed login attempt: Incorrect password', AuthService.name);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return this.tokenService.generateTokens(userLogin.user, deviceId);
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {

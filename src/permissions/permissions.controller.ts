@@ -1,28 +1,28 @@
-import { Controller, Get, Post, Body, Param, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Query } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import { CreatePermissionDto, UpdatePermissionDto } from './permissions.dto';
-import { Roles, Permissions } from '@/access_control/access.decorator';
+import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
+import { Metadata } from '@/access_control';
 
 @Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('CREATE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('CREATE')
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionsService.create(createPermissionDto);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('VIEWS')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('VIEWS')
   @Get()
-  findAll() {
-    return this.permissionsService.findAll();
+  findAll(@Query() findAllPermissionDto: FindAllPermissionDto) {
+    return this.permissionsService.findAll(findAllPermissionDto);
   }
 
-  @Roles('SUPER_ADMIN')
-  @Permissions('UPDATE')
+  @Metadata.Roles('SUPER_ADMIN')
+  @Metadata.Permissions('UPDATE')
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
     return this.permissionsService.update(id, updatePermissionDto);

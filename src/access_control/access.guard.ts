@@ -6,11 +6,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from './access.decorator';
 import { TokenService } from '@/auth/token.service';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/logger';
 import { NameStatusUser } from '@/shared/constants';
+import { DecoratorKeys } from '@/shared/enums';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -21,11 +21,15 @@ export class AccessGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+    const isPublic = this.reflector.getAllAndOverride<boolean>(DecoratorKeys.PUBLIC, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+
+    if (isPublic) {
+      LoggerService.log('✅ Request is public, skipping authentication.', AccessGuard.name);
+      return true;
+    }
 
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
@@ -73,9 +77,10 @@ export class AccessGuard implements CanActivate {
       const userRole = user.role.name;
       const userPermissions = user.role.permissions.map(p => p.name);
 
-      const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler()) || [];
+      const requiredRoles =
+        this.reflector.get<string[]>(DecoratorKeys.ROLES, context.getHandler()) || [];
       const requiredPermissions =
-        this.reflector.get<string[]>('permissions', context.getHandler()) || [];
+        this.reflector.get<string[]>(DecoratorKeys.PERMISSIONS, context.getHandler()) || [];
 
       if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
         LoggerService.warn(

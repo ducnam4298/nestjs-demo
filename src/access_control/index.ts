@@ -1,6 +1,5 @@
-import { AccessStrategy } from './access.strategy';
-import { AccessInterceptor } from './access.interceptor';
-import { AccessGuard } from './access.guard';
-import { AccessModule } from './access.module';
-
-export { AccessModule, AccessGuard, AccessInterceptor, AccessStrategy };
+export * from './access.decorator';
+export * from './access.strategy';
+export * from './access.interceptor';
+export * from './access.guard';
+export * from './access.module';
