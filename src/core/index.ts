@@ -7,7 +7,7 @@ import { EmployeesModule } from '@/employees';
 
 @Global()
 @Module({
-  imports: [UsersModule, AuthModule, RolesModule, PermissionsModule, EmployeesModule], // 👈 Chuyển thành imports
-  exports: [UsersModule, AuthModule, RolesModule, PermissionsModule, EmployeesModule],
+  imports: [AuthModule, UsersModule, RolesModule, PermissionsModule, EmployeesModule],
+  exports: [AuthModule, UsersModule, RolesModule, PermissionsModule, EmployeesModule],
 })
 export class CoreModule {}

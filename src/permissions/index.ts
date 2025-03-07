@@ -1,4 +1,4 @@
-import { PermissionsService } from './permissions.service';
-import { PermissionsController } from './permissions.controller';
-import { PermissionsModule } from './permissions.module';
-export { PermissionsModule, PermissionsController, PermissionsService };
+export * from './permissions.module';
+export * from './permissions.controller';
+export * from './permissions.service';
+export * from './permissions.dto';

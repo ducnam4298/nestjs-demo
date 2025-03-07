@@ -9,7 +9,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 @Injectable()
 export class AccessInterceptor implements NestInterceptor {

@@ -6,7 +6,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from '@/database';
 import { AccessModule } from '@/access_control';
 import { CleanStringMiddleware } from '@/middleware';
-import { LoggerMiddleware } from '@/logger';
+import { LoggerMiddleware } from '@/middleware';
 import { throttlerConfig } from '@/config';
 import { CoreModule } from '@/core';
 

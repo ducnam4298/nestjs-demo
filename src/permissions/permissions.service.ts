@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 import { getValidSortField, retryTransaction } from '@/shared/utils';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { RolesService } from './roles.service';
-import { RolesController } from './roles.controller';
-import { RolesModule } from './roles.module';
-export { RolesModule, RolesController, RolesService };
+export * from './roles.module';
+export * from './roles.controller';
+export * from './roles.service';
+export * from './roles.dto';

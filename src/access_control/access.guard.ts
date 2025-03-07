@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { TokenService } from '@/auth/token.service';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 import { NameStatusUser } from '@/shared/constants';
 import { DecoratorKeys } from '@/shared/enums';
 

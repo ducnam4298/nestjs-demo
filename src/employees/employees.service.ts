@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 import { getValidSortField, retryTransaction } from '@/shared/utils';
 
 @Injectable()

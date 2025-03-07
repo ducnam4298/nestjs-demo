@@ -1,3 +1,2 @@
-import { CleanStringMiddleware } from './clean.middleware';
-
-export { CleanStringMiddleware };
+export * from './clean.middleware';
+export * from './logger.middleware';

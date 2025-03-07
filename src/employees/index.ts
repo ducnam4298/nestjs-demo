@@ -1,4 +1,4 @@
-import { EmployeesService } from './employees.service';
-import { EmployeesController } from './employees.controller';
-import { EmployeesModule } from './employees.module';
-export { EmployeesModule, EmployeesController, EmployeesService };
+export * from './employees.module';
+export * from './employees.controller';
+export * from './employees.service';
+export * from './employees.dto';

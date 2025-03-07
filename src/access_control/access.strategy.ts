@@ -7,7 +7,7 @@ import {
   StrategyOptionsWithoutRequest,
 } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 export interface JwtPayload {
   userId: string;

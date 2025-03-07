@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 @Injectable()
 export class CleanQueryInterceptor implements NestInterceptor {

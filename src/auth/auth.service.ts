@@ -5,7 +5,7 @@ import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { DatabaseService } from '@/database';
 import { RolesService } from '@/roles';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 import { UsersService } from '@/users';
 import { UpdateUserDto } from '@/users/users.dto';
 import { maskEmail, retryTransaction } from '@/shared/utils';

@@ -5,7 +5,7 @@ import { AllExceptionsFilter } from '@/all-exceptions.filter';
 import { AppModule } from '@/app';
 import { AccessInterceptor } from '@/access_control';
 import { corsOrigin } from '@/config';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 // import { CleanQueryInterceptor } from '@/interceptors';
 
 const handleShutdown = (app: INestApplication) => {

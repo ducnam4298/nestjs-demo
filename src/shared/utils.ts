@@ -1,6 +1,6 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 export const maskEmail = (email: string) => {
   const [local, domain] = email.split('@');

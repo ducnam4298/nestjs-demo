@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Delete, Patch, Query } from '@nestjs/common';
 import { RolesService } from './roles.service';
-import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './role.dto';
+import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './roles.dto';
 import { Metadata } from '@/access_control';
 
 @Controller('roles')

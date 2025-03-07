@@ -1,5 +1,4 @@
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
-import { UsersModule } from './users.module';
-
-export { UsersModule, UsersController, UsersService };
+export * from './users.module';
+export * from './users.controller';
+export * from './users.service';
+export * from './users.dto';

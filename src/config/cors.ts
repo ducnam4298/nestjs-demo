@@ -1,6 +1,6 @@
-import allowedOrigin from './allowedOrigin';
+import { allowedOrigin } from '.';
 
-const corsOrigin = {
+export const corsOrigin = {
   origin: (origin, callback: (err: Error | null, success?: boolean) => void) => {
     if (!origin || allowedOrigin.indexOf(origin) !== -1) {
       callback(null, true);
@@ -16,5 +16,3 @@ const corsOrigin = {
   originSuccessStatus: 200,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 };
-
-export default corsOrigin;

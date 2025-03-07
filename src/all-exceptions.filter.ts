@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 interface HttpErrorResponse {
   message?: string | string[];

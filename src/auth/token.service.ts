@@ -1,14 +1,9 @@
-import {
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 
 interface Permission {
   name: string;

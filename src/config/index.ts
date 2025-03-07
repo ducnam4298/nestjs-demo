@@ -1,5 +1,3 @@
-import allowedOrigin from './allowedOrigin';
-import corsOrigin from './cors';
-import throttlerConfig from './throttler.config';
-
-export { allowedOrigin, corsOrigin, throttlerConfig };
+export * from './allowedOrigin';
+export * from './cors';
+export * from './throttler.config';

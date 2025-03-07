@@ -9,7 +9,7 @@ import {
   UpdateUserRoleDto,
 } from './users.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/logger';
+import { LoggerService } from '@/services';
 import { RolesService } from '@/roles';
 import { PasswordService } from '@/auth';
 import {
