@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import {
   ActivationDto,
   ChangePasswordDto,
   CreateUserDto,
   FindAllUserDto,
+  FindOneUserDto,
   UpdateStatusDto,
   UpdateUserDto,
   UpdateUserRoleDto,
@@ -132,9 +134,26 @@ export class UsersService {
     return users;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, findOneUserDto: FindOneUserDto) {
+    const { email, phone } = findOneUserDto;
     LoggerService.log(`ℹ️ Finding user with ID: ${id}`, UsersService.name);
-    const user = await this.databaseService.user.findUnique({ where: { id } });
+    let uniqueWhere: Prisma.UserWhereUniqueInput | null = null;
+    if (id) {
+      uniqueWhere = { id };
+    } else if (email) {
+      uniqueWhere = { email };
+    } else if (phone) {
+      uniqueWhere = { phone };
+    }
+    if (!uniqueWhere) {
+      throw new BadRequestException('No valid search criteria provided');
+    }
+    if (!Object.keys(uniqueWhere).length) {
+      throw new BadRequestException('No valid search criteria provided');
+    }
+    const user = await this.databaseService.user.findUnique({
+      where: uniqueWhere,
+    });
     if (!user) throw new NotFoundException('User not found');
     LoggerService.log(`✅ User with ID: ${id} found`, UsersService.name);
     return user;

@@ -6,7 +6,7 @@ import { PaginationDto } from '@/shared/dtos';
 export class CreateEmployeeDto {
   @IsNotEmpty()
   @IsString()
-  position!: Position;
+  position: Position;
 }
 
 export class FindAllEmployeeDto extends PartialType(PaginationDto) {

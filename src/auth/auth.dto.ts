@@ -3,20 +3,20 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class RegisterDto {
   @IsNotEmpty()
   @IsString()
-  name!: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()
-  password!: string;
+  password: string;
 
   @IsString()
   username?: string;
 
   @IsString()
-  email!: string;
+  email?: string;
 
   @IsString()
-  phone!: string;
+  phone?: string;
 
   @IsString()
   roleId?: string;
@@ -25,33 +25,33 @@ export class RegisterDto {
 export class LoginDto {
   @IsNotEmpty()
   @IsString()
-  identifier!: string;
+  identifier: string;
 
   @IsNotEmpty()
   @IsString()
-  password!: string;
+  password: string;
 
   @IsNotEmpty()
   @IsString()
-  deviceId!: string;
+  deviceId: string;
 }
 
 export class RefreshTokenDto {
   @IsNotEmpty()
   @IsString()
-  refreshToken!: string;
+  refreshToken: string;
 
   @IsNotEmpty()
   @IsString()
-  deviceId!: string;
+  deviceId: string;
 }
 
 export class LogoutDto {
   @IsNotEmpty()
   @IsString()
-  userId!: string;
+  userId: string;
 
   @IsNotEmpty()
   @IsString()
-  deviceId!: string;
+  deviceId: string;
 }

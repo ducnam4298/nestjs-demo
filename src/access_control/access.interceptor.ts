@@ -24,10 +24,10 @@ export class AccessInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const timeTaken = Date.now() - now;
-        LoggerService.log(`[RESPONSE] ${method} ${url} - ${timeTaken}ms`);
+        LoggerService.log(`[RESPONSE] ${method} ${url} - ${response.statusCode} - ${timeTaken}ms`);
       }),
       map(data => {
-        if (request.method === 'POST' && response.statusCode === 201) {
+        if (method === 'POST' && response.statusCode === 201) {
           response.status(200);
         }
         return {
@@ -39,14 +39,15 @@ export class AccessInterceptor implements NestInterceptor {
         };
       }),
       catchError(error => {
+        const statusCode = error instanceof HttpException ? error.getStatus() : 500;
         LoggerService.error(
-          `❌ Error in AccessInterceptor: ${error.message}`,
+          `❌ Error ${statusCode} in AccessInterceptor: ${error.message}`,
           error instanceof Error ? error.stack : ''
         );
-        if (error instanceof HttpException) {
-          return throwError(() => error);
-        }
-        return throwError(() => new InternalServerErrorException('Internal Server'));
+
+        return throwError(() =>
+          error instanceof HttpException ? error : new InternalServerErrorException()
+        );
       })
     );
   }

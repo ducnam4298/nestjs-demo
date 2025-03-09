@@ -66,6 +66,26 @@ export class RolesService {
     return id;
   }
 
+  async ensureRoleExists(name: string) {
+    const existingRole = await this.databaseService.role.findUnique({ where: { name } });
+
+    if (existingRole) {
+      LoggerService.debug(
+        `🔍 Role "${name}" already exists with ID: ${existingRole.id}`,
+        'RolesService'
+      );
+      await this.updateRolePermissions(existingRole.id);
+      return existingRole.id;
+    }
+
+    LoggerService.log(`🆕 Role "${name}" not found. Creating a new one...`, 'RolesService');
+
+    const id = await this.create({ name });
+
+    LoggerService.log(`✅ Created new role "${name}" with ID: ${id}`, 'RolesService');
+    return id;
+  }
+
   async findAll(findAllRoleDto: FindAllRoleDto) {
     const { skip, take, sortBy, sortOrder, ...filters } = findAllRoleDto;
     LoggerService.log(

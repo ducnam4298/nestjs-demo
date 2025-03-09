@@ -24,7 +24,7 @@
     "strictBindCallApply": false,
     "strictNullChecks": true,
     // TypeScript will enforce property declarations in a class, e.g., name: string; => name!: string; or name?: string;.
-    "strictPropertyInitialization": true,
+    "strictPropertyInitialization": false,
     "paths": {
       "@/*": ["src/*"]
     },

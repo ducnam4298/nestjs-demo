@@ -1,11 +1,4 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  NotFoundException,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { LoggerService } from '@/services';
@@ -23,77 +16,96 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    let status: number = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string = 'Internal server error';
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    const stackTrace =
+      process.env.VERCEL_ENV !== 'production' && exception instanceof Error
+        ? exception.stack
+        : undefined;
 
-    if (exception instanceof NotFoundException) {
-      LoggerService.warn(`🚨 Not Found: ${request.url}`);
-
-      const acceptHeader = request.headers.accept || '';
-      const isApiRequest = acceptHeader.includes('application/json');
-
-      if (isApiRequest) {
-        response.status(HttpStatus.NOT_FOUND).json({
-          statusCode: HttpStatus.NOT_FOUND,
-          message: 'Resource not found',
-          path: request.url,
-          success: false,
-        });
-        return;
-      }
-
-      return response.redirect(302, '/api');
+    if (!request.route) {
+      LoggerService.warn(`🚨 API Not Found: ${request.method} ${request.url}`);
+      return response.redirect('/api');
     }
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const errorResponse = exception.getResponse();
-
-      if (typeof errorResponse === 'string') {
-        message = errorResponse;
-      } else {
-        const res = errorResponse as HttpErrorResponse;
-        if (Array.isArray(res.message)) {
-          message = res.message.join(', ');
-        } else {
-          message = res.message || message;
-        }
-      }
+      const errRes = exception.getResponse() as HttpErrorResponse;
+      message = Array.isArray(errRes?.message)
+        ? errRes.message.join(', ')
+        : (errRes?.message ?? message);
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      LoggerService.error(
-        `❌ Error processing ${request.method} ${request.url}`,
-        exception instanceof Error ? exception.stack : ''
-      );
-      status = HttpStatus.BAD_REQUEST;
-      message = 'Database known error occurred';
-    } else if (exception instanceof Prisma.PrismaClientValidationError) {
-      status = HttpStatus.BAD_REQUEST;
-      message = 'Database validation error occurred';
-    } else if (exception instanceof Prisma.PrismaClientUnknownRequestError) {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Unknown database error occurred';
+      LoggerService.error(`❌ Prisma Error on ${request.method} ${request.url}`, stackTrace);
+      ({ status, message } = handlePrismaError(exception));
     } else if (exception instanceof Prisma.PrismaClientInitializationError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Database initialization error occurred';
+      message = 'Database initialization failed';
     } else if (exception instanceof Prisma.PrismaClientRustPanicError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Database internal error occurred';
+      message = 'Database crashed due to a Rust panic';
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      status = HttpStatus.BAD_REQUEST;
+      message = 'Invalid database request';
+    } else if (exception instanceof Prisma.PrismaClientUnknownRequestError) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Unknown database error';
     }
 
-    const stackTrace = exception instanceof Error ? exception.stack : null;
     LoggerService.error(
-      `❌ Error processing ${request.method} ${request.url}`,
-      stackTrace ?? 'No stack trace available'
+      `❌ Error processing ${request.method} ${request.url}: ${message}`,
+      stackTrace
     );
 
-    const errorResponseObj = {
+    response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       success: false,
       message: process.env.VERCEL_ENV === 'production' ? 'An error occurred.' : message,
-    };
-
-    response.status(status).json(errorResponseObj);
+    });
   }
 }
+
+export const handlePrismaError = (exception: Prisma.PrismaClientKnownRequestError) => {
+  const errorMap: Record<string, { status: number; message: string }> = {
+    P2002: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Duplicate entry: This value already exists in the database.',
+    },
+    P2025: {
+      status: HttpStatus.NOT_FOUND,
+      message: 'Record not found: Unable to find the requested resource.',
+    },
+    P2003: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Foreign key constraint failed: Invalid relationship.',
+    },
+    P2014: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Invalid relation: The change would violate a relation constraint.',
+    },
+    P2016: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Invalid query: Please check your query syntax.',
+    },
+    P2011: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Null constraint failed: A required field is missing.',
+    },
+    P2012: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Missing required value for a non-nullable field.',
+    },
+    P2013: {
+      status: HttpStatus.BAD_REQUEST,
+      message: 'Incorrect number of arguments for the query.',
+    },
+  };
+
+  return (
+    errorMap[exception.code] ?? {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: `Database error (${exception.code}): ${exception.message}`,
+    }
+  );
+};

@@ -32,88 +32,71 @@ export class AccessGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers['authorization'];
-    if (!authHeader || typeof authHeader !== 'string') {
-      LoggerService.warn('🚨 Missing or invalid authorization header', AccessGuard.name);
-      throw new ForbiddenException('Missing or invalid authorization header');
+
+    const authHeader: string = request.headers['authorization'];
+    if (!authHeader || !/^Bearer\s[\w-]+\.[\w-]+\.[\w-]+$/.test(authHeader)) {
+      LoggerService.warn('🚨 Invalid authorization header format', AccessGuard.name);
+      throw new UnauthorizedException('Invalid authorization header format');
     }
 
-    const deviceId = request.headers['device-id'];
+    const deviceId: string = (request.headers['device-id'] as string)?.trim();
     if (!deviceId) {
       LoggerService.warn('🚨 Missing device ID', AccessGuard.name);
       throw new UnauthorizedException('Missing device ID');
     }
 
     const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new UnauthorizedException('Invalid authorization header format');
-    }
-
     const payload = this.tokenService.verifyToken(token);
 
-    try {
-      const userId = payload.userId;
+    const user = await this.databaseService.user.findUnique({
+      where: { id: payload.userId },
+      include: { role: { include: { permissions: true } } },
+    });
 
-      const user = await this.databaseService.user.findUnique({
-        where: { id: userId },
-        include: { role: { include: { permissions: true } } },
-      });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
+    if (!user.role) {
+      LoggerService.warn(`🚨 User ${user.id} has no assigned role`, AccessGuard.name);
+      throw new ForbiddenException('User has no assigned role');
+    }
 
-      if (!user.role) {
-        LoggerService.warn(`🚨 User ${userId} has no assigned role`, AccessGuard.name);
-        throw new ForbiddenException('User has no assigned role');
-      }
+    if (!user.isActive) {
+      const statusMessage = NameStatusUser(user.status) ?? 'inactivated';
+      LoggerService.warn(`🚨 User account is ${statusMessage}`, AccessGuard.name);
+      throw new ForbiddenException(`User account is ${statusMessage}`);
+    }
 
-      if (!user.isActive) {
-        const { status } = user;
-        LoggerService.warn(`🚨 User account is ${NameStatusUser(status)}`, AccessGuard.name);
-        throw new ForbiddenException(`User account is ${NameStatusUser(status)}`);
-      }
+    const userRole = user.role.name;
+    const userPermissions = user.role.permissions.map(p => p.name);
 
-      const userRole = user.role.name;
-      const userPermissions = user.role.permissions.map(p => p.name);
+    const requiredRoles =
+      this.reflector.get<string[]>(DecoratorKeys.ROLES, context.getHandler()) || [];
+    const requiredPermissions =
+      this.reflector.get<string[]>(DecoratorKeys.PERMISSIONS, context.getHandler()) || [];
 
-      const requiredRoles =
-        this.reflector.get<string[]>(DecoratorKeys.ROLES, context.getHandler()) || [];
-      const requiredPermissions =
-        this.reflector.get<string[]>(DecoratorKeys.PERMISSIONS, context.getHandler()) || [];
-
-      if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
-        LoggerService.warn(
-          `🚨 User ${userId} lacks required roles: ${requiredRoles.join(', ')}`,
-          AccessGuard.name
-        );
-        throw new ForbiddenException(`Required roles: ${requiredRoles.join(', ')}`);
-      }
-
-      if (requiredPermissions.length > 0) {
-        const hasPermission = requiredPermissions.every(per => userPermissions.includes(per));
-        if (!hasPermission) {
-          LoggerService.warn(
-            `🚨 User ${userId} lacks required permissions: ${requiredPermissions.join(', ')}`,
-            AccessGuard.name
-          );
-          throw new ForbiddenException(`Required permissions: ${requiredPermissions.join(', ')}`);
-        }
-      }
-
-      request.user = user;
-      LoggerService.log(`✅ User ${userId} authorized with role: ${userRole}`, AccessGuard.name);
-      return true;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      const errorStack = error instanceof Error ? error.stack : String(error);
-      LoggerService.error(
-        `❌ Access denied: ${errorMessage}\nStack: ${errorStack}`,
+    if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
+      LoggerService.warn(
+        `🚨 User ${user.id} lacks required roles: ${requiredRoles.join(', ')}`,
         AccessGuard.name
       );
-
-      throw error;
+      throw new ForbiddenException(`Required roles: ${requiredRoles.join(', ')}`);
     }
+
+    if (
+      requiredPermissions.length > 0 &&
+      !requiredPermissions.every(per => userPermissions.includes(per))
+    ) {
+      LoggerService.warn(
+        `🚨 User ${user.id} lacks required permissions: ${requiredPermissions.join(', ')}`,
+        AccessGuard.name
+      );
+      throw new ForbiddenException(`Required permissions: ${requiredPermissions.join(', ')}`);
+    }
+
+    request.user = user;
+    LoggerService.log(`✅ User ${user.id} authorized with role: ${userRole}`, AccessGuard.name);
+    return true;
   }
 }

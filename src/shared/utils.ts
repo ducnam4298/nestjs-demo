@@ -1,11 +1,48 @@
-import { InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { LoggerService } from '@/services';
+import { isValidNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
 
 export const maskEmail = (email: string) => {
   const [local, domain] = email.split('@');
   return local && domain ? `${local[0]}***@${domain}` : email;
 };
+
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+export function isValidPhoneNumber(phone: string): boolean {
+  try {
+    if (!phone.startsWith('+')) {
+      LoggerService.warn(`⚠️ Phone number missing country code: ${phone}`, 'PhoneValidation');
+      throw new BadRequestException(
+        'Phone number must include country code (e.g., +84 for Vietnam)'
+      );
+    }
+
+    const phoneNumber = parsePhoneNumberWithError(phone);
+
+    if (!isValidNumber(phoneNumber.number, phoneNumber.country)) {
+      LoggerService.warn(`🚫 Invalid phone number: ${phone}`, 'PhoneValidation');
+      throw new BadRequestException('Invalid phone number');
+    }
+
+    LoggerService.debug(
+      `✅ Valid phone number: ${phoneNumber.number} (Country: ${phoneNumber.country})`,
+      'PhoneValidation'
+    );
+    return true;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    LoggerService.error(
+      `❌ Error validating phone number (${phone}): ${errorMessage}`,
+      'PhoneValidation'
+    );
+    throw new BadRequestException(`Invalid phone number: ${errorMessage}`);
+  }
+}
 
 export const retryTransaction = async <T>(
   transactionFn: () => Promise<T>,

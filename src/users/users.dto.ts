@@ -6,16 +6,16 @@ import { PaginationDto } from '@/shared/dtos';
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
-  name?: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()
   @IsEmail()
-  email?: string;
+  email: string;
 
   @IsNotEmpty()
   @IsString()
-  phone?: string;
+  phone: string;
 
   @IsString()
   roleId?: string;
@@ -35,6 +35,15 @@ export class FindAllUserDto extends PartialType(PaginationDto) {
   phone?: string;
 }
 
+export class FindOneUserDto {
+  @IsString()
+  @IsEmail()
+  email?: string;
+
+  @IsString()
+  phone?: string;
+}
+
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @IsBoolean()
@@ -49,11 +58,11 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 export class ChangePasswordDto {
   @IsNotEmpty()
   @IsString()
-  oldPassword?: string;
+  oldPassword: string;
 
   @IsNotEmpty()
   @IsString()
-  newPassword?: string;
+  newPassword: string;
 }
 
 export class UpdateStatusDto {

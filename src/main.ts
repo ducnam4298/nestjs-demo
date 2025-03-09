@@ -18,8 +18,12 @@ const handleShutdown = (app: INestApplication) => {
       .then(() => {
         process.exit(0);
       })
-      .catch(err => {
-        LoggerService.error('❌ Error during shutdown', err);
+      .catch(error => {
+        const errorMessage =
+          error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        const errorStack = error instanceof Error ? error.stack : String(error);
+        LoggerService.error('❌ Error during shutdown', errorMessage);
+        LoggerService.debug(errorStack);
         process.exit(1);
       });
   };
@@ -39,10 +43,14 @@ const bootstrap = async () => {
 
     app.setGlobalPrefix('api');
     app.enableCors(corsOrigin);
+    app.enableShutdownHooks();
 
-    const PORT = app.get(ConfigService).get<number>('PORT', 3000);
+    const configService = app.get(ConfigService);
+    const PORT = configService.get<number>('PORT', { infer: true }) ?? 3000;
     await app.listen(PORT);
     LoggerService.log(`🚀 Server running on http://localhost:${PORT}/api`, 'Bootstrap');
+
+    ['SIGINT', 'SIGTERM'].forEach(signal => process.on(signal, handleShutdown(app)));
 
     process.on('SIGINT', handleShutdown(app));
     process.on('SIGTERM', handleShutdown(app));
@@ -54,7 +62,7 @@ const bootstrap = async () => {
 
     if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('database')) {
       LoggerService.warn('🔄 Database connection failed. Retrying in 5 seconds...');
-      setTimeout(() => bootstrap, 5000);
+      setTimeout(() => void bootstrap(), 5000);
     } else {
       LoggerService.error('❌ Critical error occurred. Shutting down...');
       process.exit(1);

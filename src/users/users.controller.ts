@@ -5,6 +5,7 @@ import {
   ChangePasswordDto,
   CreateUserDto,
   FindAllUserDto,
+  FindOneUserDto,
   UpdateStatusDto,
   UpdateUserDto,
   UpdateUserRoleDto,
@@ -46,8 +47,8 @@ export class UsersController {
   @Metadata.Roles('SUPER_ADMIN', 'USER')
   @Metadata.Permissions('DETAIL')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @Query() findOneUserDto: FindOneUserDto) {
+    return this.usersService.findOne(id, findOneUserDto);
   }
 
   @Metadata.Roles('SUPER_ADMIN', 'USER')

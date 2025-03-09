@@ -5,15 +5,15 @@ import { PaginationDto } from '@/shared/dtos';
 export class CreatePermissionDto {
   @IsNotEmpty()
   @IsString()
-  name?: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()
-  entity?: string;
+  entity: string;
 
   @IsNotEmpty()
   @IsString()
-  roleId?: string;
+  roleId: string;
 }
 
 export class FindAllPermissionDto extends PartialType(PaginationDto) {

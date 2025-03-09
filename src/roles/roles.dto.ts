@@ -5,17 +5,17 @@ import { PaginationDto } from '@/shared/dtos';
 export class CreateRoleDto {
   @IsNotEmpty()
   @IsString()
-  name?: string;
+  name: string;
 }
 
 export class AssignPermissionsForRole {
   @IsString()
   @IsNotEmpty()
-  id!: string;
+  id: string;
 
   @IsArray()
   @IsNotEmpty()
-  permissionIds!: string[];
+  permissionIds: string[];
 }
 
 export class FindAllRoleDto extends PartialType(PaginationDto) {
