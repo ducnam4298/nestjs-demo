@@ -2,6 +2,8 @@ import { BadRequestException, InternalServerErrorException } from '@nestjs/commo
 import { PrismaClient } from '@prisma/client';
 import { LoggerService } from '@/services';
 import { isValidNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
+import { ModelDelegates } from '.';
+import { DatabaseService } from '@/database';
 
 export const maskEmail = (email: string) => {
   const [local, domain] = email.split('@');
@@ -79,49 +81,38 @@ export function sanitizeFilters<T extends Record<string, any>>(filters: T): Part
   ) as Partial<T>;
 }
 
-export const getAllowedSortFields = async (
-  prisma: PrismaClient,
-  tableName: string
+export const getAllowedSortFields = async <T extends keyof ModelDelegates>(
+  model: T,
+  dbService: DatabaseService
 ): Promise<string[]> => {
-  const formattedTableName = tableName.charAt(0).toUpperCase() + tableName.slice(1).toLowerCase();
-  const result: { column_name: string }[] = await prisma.$queryRaw`
+  const formattedTableName =
+    String(model).charAt(0).toUpperCase() + String(model).slice(1).toLowerCase();
+  const result: { column_name: string }[] = await dbService.$queryRaw`
     SELECT column_name FROM information_schema.columns 
     WHERE table_name = ${formattedTableName}
   `;
-  console.log('Columns Name:', result);
-
   return result.map(row => row.column_name);
 };
 
-type SortOrder = 'asc' | 'desc';
+export const getModelDelegate = <T extends keyof ModelDelegates>(
+  model: T,
+  dbService: DatabaseService
+): ModelDelegates[T] => {
+  return dbService[model] as unknown as ModelDelegates[T];
+};
 
-export const getValidSortField = async <T extends keyof PrismaClient>(
-  modelName: string,
-  sortBy: string | undefined,
-  sortOrder: string | undefined,
-  hasUpdatedAt: boolean
-): Promise<{ sortBy: string; sortOrder: SortOrder }> => {
-  const prisma = new PrismaClient();
+export const buildWhereClause = (filters: Record<string, any>) => {
+  const where: Record<string, any> = {};
 
-  const allowedSortFields = await getAllowedSortFields(prisma, modelName);
+  Object.entries(filters).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      where[key] = { contains: value, mode: 'insensitive' };
+    } else if (typeof value === 'number') {
+      where[key] = value;
+    } else if (typeof value === 'object' && value !== null) {
+      where[key] = value;
+    }
+  });
 
-  const cleanValue = (value?: string) =>
-    value ? value.trim().replace(/^['"](.*)['"]$/, '$1') : undefined;
-
-  const cleanedSortBy = cleanValue(sortBy);
-  const cleanedSortOrder = cleanValue(sortOrder);
-
-  const validSortOrders: SortOrder[] = ['asc', 'desc'];
-  const finalSortOrder: SortOrder = validSortOrders.includes(cleanedSortOrder as SortOrder)
-    ? (cleanedSortOrder as SortOrder)
-    : 'desc';
-
-  const finalSortBy =
-    cleanedSortBy && allowedSortFields.includes(cleanedSortBy)
-      ? cleanedSortBy
-      : hasUpdatedAt
-        ? 'updatedAt'
-        : 'createdAt';
-
-  return { sortBy: finalSortBy, sortOrder: finalSortOrder };
+  return where;
 };

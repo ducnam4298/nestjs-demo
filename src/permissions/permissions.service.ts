@@ -1,12 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/services';
-import { getValidSortField, retryTransaction } from '@/shared/utils';
+import { FilterService, LoggerService, PaginationService } from '@/services';
+import { retryTransaction } from '@/shared/utils';
 
 @Injectable()
 export class PermissionsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly filterService: FilterService,
+    private readonly paginationService: PaginationService
+  ) {}
 
   async create(createPermissionDto: CreatePermissionDto) {
     const { name, entity, roleId } = createPermissionDto;
@@ -46,31 +50,24 @@ export class PermissionsService {
   }
 
   async findAll(findAllPermissionDto: FindAllPermissionDto) {
-    const { skip, take, sortBy, sortOrder, ...filters } = findAllPermissionDto;
+    const { page = 1, pageRecords = 10, sortBy, sortOrder, ...filters } = findAllPermissionDto;
+    const model = 'permission';
     LoggerService.log(
-      `ℹ️ Finding permissions with filters: ${JSON.stringify(filters)}, skip: ${skip}, take: ${take}`,
+      `ℹ️ Finding permissions with filters: ${JSON.stringify(filters)}, page: ${page}, pageRecords: ${pageRecords}`,
       PermissionsService.name
     );
 
-    const hasUpdated = await this.databaseService.permission.findFirst({
-      where: { updatedAt: { not: null } },
-      select: { updatedAt: true },
-    });
-    const { sortBy: finalSortBy, sortOrder: finalSortOrder } = await getValidSortField(
-      'permission',
-      sortBy,
-      sortOrder,
-      !!hasUpdated
-    );
+    const { sortBy: finalSortBy, sortOrder: finalSortOrder } =
+      await this.filterService.getValidSortField(model, sortBy, sortOrder);
 
-    const permissions = await this.databaseService.permission.findMany({
-      where: Object.keys(filters).length ? filters : undefined,
-      skip,
-      take,
-      orderBy: finalSortBy ? { [finalSortBy]: finalSortOrder } : undefined,
-    });
-    LoggerService.log(`✅ Found ${permissions.length} permissions`, PermissionsService.name);
-    return permissions;
+    return this.paginationService.paginate(
+      model,
+      filters,
+      page,
+      pageRecords,
+      finalSortBy,
+      finalSortOrder
+    );
   }
 
   async update(id: string, updatePermissionDto: UpdatePermissionDto) {

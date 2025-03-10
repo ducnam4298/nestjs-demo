@@ -44,7 +44,7 @@ model User {
   isActive   Boolean     @default(false)
   status     StatusUser? @default(PENDING)
 
-  @@index([id, name, email, phone, employeeId, roleId])
+  @@index([id, name, email, phone, employeeId, roleId, isActive, status, createdAt, updatedAt])
 }
 
 model Token {
@@ -57,7 +57,7 @@ model Token {
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
 
-  @@index([id, userId])
+  @@index([id, userId, deviceId, createdAt, updatedAt])
 }
 
 model Login {
@@ -71,7 +71,7 @@ model Login {
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([username, email, phone, userId])
+  @@index([username, email, phone, userId, createdAt, updatedAt])
 }
 
 model Employee {
@@ -81,7 +81,7 @@ model Employee {
   position  Position
   users     User[]
 
-  @@index([id, position])
+  @@index([id, position, createdAt, updatedAt])
 }
 
 model Role {
@@ -92,7 +92,7 @@ model Role {
   permissions Permission[]
   users       User[]
 
-  @@index([id, name])
+  @@index([id, name, createdAt, updatedAt])
 }
 
 model Permission {
@@ -104,5 +104,5 @@ model Permission {
   role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId    String
 
-  @@index([id, name, entity, roleId])
+  @@index([id, name, entity, roleId, createdAt, updatedAt])
 }

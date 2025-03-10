@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/services';
-import { getValidSortField, retryTransaction } from '@/shared/utils';
+import { FilterService, LoggerService, PaginationService } from '@/services';
+import { retryTransaction } from '@/shared';
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly filterService: FilterService,
+    private readonly paginationService: PaginationService
+  ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto) {
     LoggerService.log(`ℹ️ Creating new employee`, EmployeesService.name);
@@ -25,32 +29,24 @@ export class EmployeesService {
   }
 
   async findAll(findAllEmployeeDto: FindAllEmployeeDto) {
-    const { skip, take, sortBy, sortOrder, ...filters } = findAllEmployeeDto;
+    const { page = 1, pageRecords = 10, sortBy, sortOrder, ...filters } = findAllEmployeeDto;
+    const model = 'employee';
     LoggerService.log(
-      `ℹ️ Finding employees with filters: ${JSON.stringify(filters)}, skip: ${skip}, take: ${take}`,
+      `ℹ️ Finding employees with filters: ${JSON.stringify(filters)}, page: ${page}, pageRecords: ${pageRecords}`,
       EmployeesService.name
     );
 
-    const hasUpdated = await this.databaseService.employee.findFirst({
-      where: { updatedAt: { not: null } },
-      select: { updatedAt: true },
-    });
+    const { sortBy: finalSortBy, sortOrder: finalSortOrder } =
+      await this.filterService.getValidSortField(model, sortBy, sortOrder);
 
-    const { sortBy: finalSortBy, sortOrder: finalSortOrder } = await getValidSortField(
-      'employee',
-      sortBy,
-      sortOrder,
-      !!hasUpdated
+    return this.paginationService.paginate(
+      model,
+      filters,
+      page,
+      pageRecords,
+      finalSortBy,
+      finalSortOrder
     );
-
-    const employees = await this.databaseService.employee.findMany({
-      where: Object.keys(filters).length ? filters : undefined,
-      skip,
-      take,
-      orderBy: finalSortBy ? { [finalSortBy]: finalSortOrder } : undefined,
-    });
-    LoggerService.log(`✅ Found ${employees.length} employees`, EmployeesService.name);
-    return employees;
   }
 
   async findOne(id: string) {

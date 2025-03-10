@@ -11,22 +11,19 @@ import {
   UpdateUserRoleDto,
 } from './users.dto';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/services';
+import { FilterService, LoggerService, PaginationService } from '@/services';
 import { RolesService } from '@/roles';
 import { PasswordService } from '@/auth';
-import {
-  getValidSortField,
-  maskEmail,
-  retryTransaction,
-  // sanitizeFilters,
-} from '@/shared/utils';
+import { maskEmail, retryTransaction } from '@/shared/utils';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly rolesService: RolesService,
-    private readonly passwordService: PasswordService
+    private readonly passwordService: PasswordService,
+    private readonly filterService: FilterService,
+    private readonly paginationService: PaginationService
   ) {}
 
   async activate(id: string, activationDto: ActivationDto) {
@@ -104,34 +101,23 @@ export class UsersService {
   }
 
   async findAll(findAllUserDto: FindAllUserDto) {
-    const { skip, take, sortBy, sortOrder, ...filters } = findAllUserDto;
+    const { page = 1, pageRecords = 10, sortBy, sortOrder, ...filters } = findAllUserDto;
+    const model = 'user';
     LoggerService.log(
-      `ℹ️ Finding users with filter: ${JSON.stringify(filters)}, skip: ${skip}, take: ${take}`,
+      `ℹ️ Finding users with filter: ${JSON.stringify(filters)}, page: ${page}, pageRecords: ${pageRecords}`,
       UsersService.name
     );
+    const { sortBy: finalSortBy, sortOrder: finalSortOrder } =
+      await this.filterService.getValidSortField(model, sortBy, sortOrder);
 
-    // const cleanedFilters = sanitizeFilters(filters);
-    const hasUpdated = await this.databaseService.user.findFirst({
-      where: { updatedAt: { not: null } },
-      select: { updatedAt: true },
-    });
-
-    const { sortBy: finalSortBy, sortOrder: finalSortOrder } = await getValidSortField(
-      'user',
-      sortBy,
-      sortOrder,
-      !!hasUpdated
+    return this.paginationService.paginate(
+      model,
+      filters,
+      page,
+      pageRecords,
+      finalSortBy,
+      finalSortOrder
     );
-
-    const users = await this.databaseService.user.findMany({
-      // where: Object.keys(cleanedFilters).length ? cleanedFilters : undefined,
-      where: Object.keys(filters).length ? filters : undefined,
-      skip,
-      take,
-      orderBy: finalSortBy ? { [finalSortBy]: finalSortOrder } : undefined,
-    });
-    LoggerService.log(`✅ Found ${users.length} users`, UsersService.name);
-    return users;
   }
 
   async findOne(id: string, findOneUserDto: FindOneUserDto) {

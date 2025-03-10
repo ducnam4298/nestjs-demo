@@ -2,12 +2,16 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './roles.dto';
 import { DEFAULT_PERMISSION } from '@/shared/constants';
 import { DatabaseService } from '@/database';
-import { LoggerService } from '@/services';
-import { getValidSortField, retryTransaction } from '@/shared/utils';
+import { FilterService, LoggerService, PaginationService } from '@/services';
+import { retryTransaction } from '@/shared/utils';
 
 @Injectable()
 export class RolesService {
-  constructor(private databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly filterService: FilterService,
+    private readonly paginationService: PaginationService
+  ) {}
 
   async assignPermissionsForRole(assignPermissionsForRole: AssignPermissionsForRole) {
     const { id, permissionIds } = assignPermissionsForRole;
@@ -87,32 +91,24 @@ export class RolesService {
   }
 
   async findAll(findAllRoleDto: FindAllRoleDto) {
-    const { skip, take, sortBy, sortOrder, ...filters } = findAllRoleDto;
+    const { page = 1, pageRecords = 10, sortBy, sortOrder, ...filters } = findAllRoleDto;
+    const model = 'role';
     LoggerService.log(
-      `ℹ️ Finding roles with filters: ${JSON.stringify(filters)}, skip: ${skip}, take: ${take}`,
+      `ℹ️ Finding roles with filters: ${JSON.stringify(filters)}, page: ${page}, pageRecords: ${pageRecords}`,
       RolesService.name
     );
 
-    const hasUpdated = await this.databaseService.role.findFirst({
-      where: { updatedAt: { not: null } },
-      select: { updatedAt: true },
-    });
-    const { sortBy: finalSortBy, sortOrder: finalSortOrder } = await getValidSortField(
-      'role',
-      sortBy,
-      sortOrder,
-      !!hasUpdated
-    );
+    const { sortBy: finalSortBy, sortOrder: finalSortOrder } =
+      await this.filterService.getValidSortField(model, sortBy, sortOrder);
 
-    const roles = await this.databaseService.role.findMany({
-      where: Object.keys(filters).length ? filters : undefined,
-      skip,
-      take,
-      include: { permissions: true },
-      orderBy: finalSortBy ? { [finalSortBy]: finalSortOrder } : undefined,
-    });
-    LoggerService.log(`✅ Found ${roles.length} roles`, RolesService.name);
-    return roles;
+    return this.paginationService.paginate(
+      model,
+      filters,
+      page,
+      pageRecords,
+      finalSortBy,
+      finalSortOrder
+    );
   }
 
   async findOne(id: string) {

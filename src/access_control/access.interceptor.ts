@@ -26,7 +26,7 @@ export class AccessInterceptor implements NestInterceptor {
         const timeTaken = Date.now() - now;
         LoggerService.log(`[RESPONSE] ${method} ${url} - ${response.statusCode} - ${timeTaken}ms`);
       }),
-      map(data => {
+      map(res => {
         if (method === 'POST' && response.statusCode === 201) {
           response.status(200);
         }
@@ -35,7 +35,7 @@ export class AccessInterceptor implements NestInterceptor {
           timestamp: new Date().toISOString(),
           success: true,
           message: response.statusMessage || 'Request successful',
-          data,
+          res,
         };
       }),
       catchError(error => {
