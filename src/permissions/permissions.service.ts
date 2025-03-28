@@ -1,13 +1,15 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto, FindAllPermissionDto, UpdatePermissionDto } from './permissions.dto';
 import { DatabaseService } from '@/database';
+import { RolesService } from '@/roles';
 import { FilterService, LoggerService, PaginationService } from '@/services';
-import { retryTransaction } from '@/shared/utils';
+import { retryTransaction } from '@/shared';
 
 @Injectable()
 export class PermissionsService {
   constructor(
     private readonly databaseService: DatabaseService,
+    private readonly roleService: RolesService,
     private readonly filterService: FilterService,
     private readonly paginationService: PaginationService
   ) {}
@@ -20,14 +22,13 @@ export class PermissionsService {
     );
     if (!name || !entity || !roleId)
       throw new BadRequestException('Name, entity, and roleId are required');
+    const roleExists = await this.roleService.findOne(roleId);
+    if (!roleExists) {
+      LoggerService.warn(`🚨 Role with ID ${roleId} not found`, PermissionsService.name);
+      throw new NotFoundException(`Role with ID ${roleId} not found`);
+    }
     const id = await retryTransaction<string>(async () => {
       const newPermission = await this.databaseService.$transaction(async db => {
-        const roleExists = await db.role.findUnique({ where: { id: roleId } });
-        if (!roleExists) {
-          LoggerService.warn(`🚨 Role with ID ${roleId} not found`, PermissionsService.name);
-          throw new NotFoundException(`Role with ID ${roleId} not found`);
-        }
-
         const existingPermission = await db.permission.findFirst({
           where: { name, entity, roleId },
         });

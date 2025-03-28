@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { StatusUser } from '@prisma/client';
 import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { PaginationDto } from '@/shared/dtos';
+import { PaginationRequestDto } from '@/shared/dtos';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -21,7 +21,7 @@ export class CreateUserDto {
   roleId?: string;
 }
 
-export class FindAllUserDto extends PartialType(PaginationDto) {
+export class FindAllUserDto extends PartialType(PaginationRequestDto) {
   @IsOptional()
   @IsString()
   name?: string;
