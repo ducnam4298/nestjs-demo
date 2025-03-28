@@ -1,5 +1,8 @@
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { LoggerService } from '@/services';
 import { isValidNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
 import { ModelDelegates } from '.';
@@ -57,14 +60,22 @@ export const retryTransaction = async <T>(
     try {
       return await transactionFn();
     } catch (error) {
-      attempt++;
       const errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      if (error instanceof NotFoundException) {
+        LoggerService.error(
+          `❌ Transaction failed due to NotFoundException: ${errorMessage}`,
+          context
+        );
+        throw error;
+      }
+      attempt++;
       lastError = errorMessage;
-      LoggerService.warn(`🚨 Transaction attempt ${attempt} failed`, context);
+      LoggerService.warn(`🚨 Transaction attempt ${attempt + 1} failed: ${lastError}`, context);
     }
   }
-  LoggerService.error(`Transaction failed after ${maxRetries} retries`, lastError);
+
+  LoggerService.error(`❌ Transaction failed after ${maxRetries} retries: ${lastError}`, context);
   throw new InternalServerErrorException('Transaction failed after maximum retries');
 };
 

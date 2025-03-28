@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { DatabaseService } from '@/database';
-import { PaginationDto, buildWhereClause, getModelDelegate } from '@/shared';
+import { PaginationResponseDto, buildWhereClause, getModelDelegate } from '@/shared';
 import { LoggerService } from '.';
 
 @Injectable()
@@ -18,6 +18,10 @@ export class PaginationService {
     sortOrder?: 'asc' | 'desc'
   ) {
     const model = getModelDelegate(modelName, this.databaseService);
+    if (!model) {
+      LoggerService.warn(`🚨 Model ${String(modelName)} not found`, PaginationService.name);
+      throw new NotFoundException(`Model ${String(modelName)} not found`);
+    }
     const where = buildWhereClause(filters);
     const skip = (page - 1) * pageRecords;
     const take = pageRecords;
@@ -35,7 +39,7 @@ export class PaginationService {
       ]);
 
       LoggerService.log(`✅ Found ${data.length} ${String(modelName)}`, PaginationService.name);
-      return new PaginationDto(data, totalRecord, page, pageRecords);
+      return new PaginationResponseDto(data, totalRecord, page, pageRecords);
     }
   }
 }

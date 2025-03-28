@@ -3,7 +3,7 @@ import { AssignPermissionsForRole, CreateRoleDto, FindAllRoleDto } from './roles
 import { DEFAULT_PERMISSION } from '@/shared/constants';
 import { DatabaseService } from '@/database';
 import { FilterService, LoggerService, PaginationService } from '@/services';
-import { retryTransaction } from '@/shared/utils';
+import { retryTransaction } from '@/shared';
 
 @Injectable()
 export class RolesService {
@@ -128,7 +128,7 @@ export class RolesService {
   async hasAllDefaultPermissions(id: string): Promise<boolean> {
     LoggerService.log(`ℹ️ Checking default permissions for role with ID: ${id}`, RolesService.name);
     const role = await this.findOne(id);
-    const existingPermissions = new Set(role.permissions.map(p => p.entity));
+    const existingPermissions = new Set(role.permissions.map(p => p.name));
     const hasAllPermissions = DEFAULT_PERMISSION.every(perm => existingPermissions.has(perm));
     LoggerService.log(
       `ℹ️ Role with ID: ${id} has all default permissions: ${hasAllPermissions}`,
@@ -139,33 +139,32 @@ export class RolesService {
 
   async updateRolePermissions(id: string) {
     LoggerService.log(`ℹ️ Updating permissions for role with ID: ${id}`, RolesService.name);
-    return this.databaseService.$transaction(async db => {
-      const role = await db.role.findUnique({
-        where: { id },
-        include: { permissions: true },
-      });
-      if (!role) {
-        LoggerService.warn(`🚨 Role not found with ID: ${id}`, RolesService.name);
-        throw new NotFoundException('Role not found');
-      }
-      const existingPermissions = role.permissions.map(p => p.name);
-      const missingPermissions = DEFAULT_PERMISSION.filter(p => !existingPermissions.includes(p));
-      if (missingPermissions.length > 0) {
-        await db.permission.createMany({
-          data: missingPermissions.map(p => ({ name: p, entity: role.name, roleId: role.id })),
-          skipDuplicates: true,
-        });
-      }
-      const updatedRole = await db.role.findUnique({
-        where: { id },
-        include: { permissions: true },
+    const role = await this.databaseService.role.findUnique({
+      where: { id },
+      include: { permissions: true },
+    });
+    if (!role) {
+      LoggerService.warn(`🚨 Role not found with ID: ${id}`, RolesService.name);
+      throw new NotFoundException('Role not found');
+    }
+    const existingPermissions = new Set(role.permissions.map(p => p.name));
+    const missingPermissions = DEFAULT_PERMISSION.filter(p => !existingPermissions.has(p));
+    if (missingPermissions.length > 0) {
+      await this.databaseService.permission.createMany({
+        data: missingPermissions.map(p => ({ name: p, entity: role.name, roleId: role.id })),
+        skipDuplicates: true,
       });
       LoggerService.log(
-        `✅ Permissions updated successfully for role with ID: ${id}`,
+        `✅ Added ${missingPermissions.length} missing permissions for role ID: ${id}`,
         RolesService.name
       );
-      return updatedRole;
-    });
+    } else {
+      LoggerService.log(`✅ No missing permissions for role ID: ${id}`, RolesService.name);
+    }
+    return {
+      ...role,
+      permissions: [...role.permissions, ...missingPermissions.map(p => ({ name: p }))],
+    };
   }
 
   async remove(id: string) {
