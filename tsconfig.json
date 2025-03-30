@@ -23,13 +23,11 @@
     "strict": true,
     "strictBindCallApply": false,
     "strictNullChecks": true,
-    // TypeScript will enforce property declarations in a class, e.g., name: string; => name!: string; or name?: string;.
     "strictPropertyInitialization": false,
     "paths": {
       "@/*": ["src/*"]
     },
-    // TypeScript will enforce that the error in a catch block is unknown instead of any.
-    "useUnknownInCatchVariables": true,
+    "useUnknownInCatchVariables": true
   },
   "include": ["src"],
 }

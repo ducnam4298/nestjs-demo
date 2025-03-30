@@ -1,7 +1,7 @@
-import { Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
-export class PaginationDto<T> {
+export class PaginationRequestDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
@@ -22,21 +22,32 @@ export class PaginationDto<T> {
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc';
 
-  totalRecord: number;
-  data: T[];
-
-  constructor(data: T[], totalRecord: number, page: number, pageRecords: number) {
-    this.data = data;
-    this.totalRecord = totalRecord;
-    this.page = page;
-    this.pageRecords = pageRecords;
-  }
-
   get skip(): number {
     return (this.page - 1) * this.pageRecords;
   }
 
   get take(): number {
     return this.pageRecords;
+  }
+}
+
+export class PaginationResponseDto<T> {
+  @Expose()
+  data: T[];
+
+  @Expose()
+  totalRecord: number;
+
+  @Expose()
+  page: number;
+
+  @Expose()
+  pageRecords: number;
+
+  constructor(data: T[], totalRecord: number, page: number, pageRecords: number) {
+    this.data = data;
+    this.totalRecord = totalRecord;
+    this.page = page;
+    this.pageRecords = pageRecords;
   }
 }
