@@ -6,7 +6,17 @@ import { promises as fsPromises } from 'fs';
 
 @Injectable()
 export class LoggerService extends ConsoleLogger {
-  private static instance: LoggerService = new LoggerService();
+  private logWorkerInterval: NodeJS.Timeout;
+  private logCleanupInterval: NodeJS.Timeout;
+
+  private static _instance: LoggerService | null = null;
+
+  static get instance(): LoggerService {
+    if (!this._instance) {
+      this._instance = new LoggerService();
+    }
+    return this._instance;
+  }
   private logQueue: string[] = [];
   private isWriting = false;
   private logDir: string = (() => {
@@ -26,6 +36,11 @@ export class LoggerService extends ConsoleLogger {
     this.ensureLogDirectory();
     this.startLogWorker();
     this.scheduleLogCleanup();
+  }
+
+  onModuleDestroy() {
+    void this.writeLogsToFile();
+    LoggerService.stopIntervals();
   }
 
   private ensureLogDirectory() {
@@ -52,7 +67,7 @@ export class LoggerService extends ConsoleLogger {
       await this.cleanupOldLogs();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('🚨 Logger Error:', errorMessage);
+      LoggerService.error('🚨 Logger Error:', errorMessage);
       const errorLogPath = path.join(this.logDir, 'error.log');
       await fs.promises.appendFile(
         errorLogPath,
@@ -64,14 +79,14 @@ export class LoggerService extends ConsoleLogger {
   }
 
   private startLogWorker() {
-    setInterval(() => {
+    this.logWorkerInterval = setInterval(() => {
       void this.writeLogsToFile();
     }, 500);
   }
 
   private scheduleLogCleanup() {
     // Cách 1: Sử dụng setInterval để dọn dẹp logs mỗi ngày (24 giờ)
-    setInterval(
+    this.logCleanupInterval = setInterval(
       () => {
         void this.cleanupOldLogs();
       },
@@ -83,6 +98,11 @@ export class LoggerService extends ConsoleLogger {
     //   void this.cleanupOldLogs();
     //   console.log('✅ Log cleanup completed');
     // });
+  }
+
+  static stopIntervals() {
+    if (this.instance.logWorkerInterval) clearInterval(this.instance.logWorkerInterval);
+    if (this.instance.logCleanupInterval) clearInterval(this.instance.logCleanupInterval);
   }
 
   private async cleanupOldLogs() {
@@ -98,11 +118,12 @@ export class LoggerService extends ConsoleLogger {
 
         if (stats.mtimeMs < thirtyDaysInMs) {
           await fsPromises.unlink(filePath);
-          console.log(`✅ Deleted old log file: ${file}`);
+          LoggerService.log(`✅ Deleted old log file: ${file}`);
         }
       }
     } catch (error) {
-      console.error('❌ Error cleaning up logs:', error);
+      const errorMessage = error instanceof Error ? error.stack : String(error);
+      LoggerService.error('❌ Error cleaning up logs:', errorMessage);
     }
   }
 

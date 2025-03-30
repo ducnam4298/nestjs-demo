@@ -1,6 +1,12 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientInitializationError,
+  PrismaClientRustPanicError,
+  PrismaClientValidationError,
+  PrismaClientUnknownRequestError,
+} from '@prisma/client/runtime/library';
 import { LoggerService } from '@/services';
 
 interface HttpErrorResponse {
@@ -34,19 +40,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = Array.isArray(errRes?.message)
         ? errRes.message.join(', ')
         : (errRes?.message ?? message);
-    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+    } else if (exception instanceof PrismaClientKnownRequestError) {
       LoggerService.error(`❌ Prisma Error on ${request.method} ${request.url}`, stackTrace);
       ({ status, message } = handlePrismaError(exception));
-    } else if (exception instanceof Prisma.PrismaClientInitializationError) {
+    } else if (exception instanceof PrismaClientInitializationError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Database initialization failed';
-    } else if (exception instanceof Prisma.PrismaClientRustPanicError) {
+    } else if (exception instanceof PrismaClientRustPanicError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Database crashed due to a Rust panic';
-    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+    } else if (exception instanceof PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
       message = 'Invalid database request';
-    } else if (exception instanceof Prisma.PrismaClientUnknownRequestError) {
+    } else if (exception instanceof PrismaClientUnknownRequestError) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Unknown database error';
     }
@@ -66,7 +72,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 }
 
-export const handlePrismaError = (exception: Prisma.PrismaClientKnownRequestError) => {
+export const handlePrismaError = (exception: PrismaClientKnownRequestError) => {
   const errorMap: Record<string, { status: number; message: string }> = {
     P2002: {
       status: HttpStatus.BAD_REQUEST,
