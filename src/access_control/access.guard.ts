@@ -9,8 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { TokenService } from '@/auth/token.service';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/services';
-import { NameStatusUser } from '@/shared/constants';
-import { DecoratorKeys } from '@/shared/enums';
+import { NameStatusUser, DecoratorKeys, TokenPayload } from '@/shared';
 
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -39,17 +38,17 @@ export class AccessGuard implements CanActivate {
       throw new UnauthorizedException('Invalid authorization header format');
     }
 
-    const deviceId: string = (request.headers['device-id'] as string)?.trim();
+    const token = authHeader.split(' ')[1];
+    const payload: TokenPayload = this.tokenService.verifyToken(token);
+    const { userId, deviceId } = payload;
+
     if (!deviceId) {
       LoggerService.warn('🚨 Missing device ID', AccessGuard.name);
       throw new UnauthorizedException('Missing device ID');
     }
 
-    const token = authHeader.split(' ')[1];
-    const payload = this.tokenService.verifyToken(token);
-
     const user = await this.databaseService.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: userId },
       include: { role: { include: { permissions: true } } },
     });
 
@@ -68,7 +67,7 @@ export class AccessGuard implements CanActivate {
       throw new ForbiddenException(`User account is ${statusMessage}`);
     }
 
-    const userRole = user.role.name;
+    const roleName = user.role.name;
     const userPermissions = user.role.permissions.map(p => p.name);
 
     const requiredRoles =
@@ -76,7 +75,7 @@ export class AccessGuard implements CanActivate {
     const requiredPermissions =
       this.reflector.get<string[]>(DecoratorKeys.PERMISSIONS, context.getHandler()) || [];
 
-    if (requiredRoles.length > 0 && !requiredRoles.includes(userRole)) {
+    if (requiredRoles.length > 0 && !requiredRoles.includes(roleName)) {
       LoggerService.warn(
         `🚨 User ${user.id} lacks required roles: ${requiredRoles.join(', ')}`,
         AccessGuard.name
@@ -96,7 +95,7 @@ export class AccessGuard implements CanActivate {
     }
 
     request.user = user;
-    LoggerService.log(`✅ User ${user.id} authorized with role: ${userRole}`, AccessGuard.name);
+    LoggerService.log(`✅ User ${user.id} authorized with role: ${roleName}`, AccessGuard.name);
     return true;
   }
 }
