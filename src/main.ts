@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from '@/all-exceptions.filter';
 import { AppModule } from '@/app';
 import { AccessInterceptor } from '@/access_control';
@@ -35,6 +36,24 @@ const bootstrap = async () => {
     LoggerService.log('🚀 Bootstrapping NestJS app...', 'Bootstrap');
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
+
+    const config = new DocumentBuilder()
+      .setTitle('API Documentation')
+      .setDescription('API Documentation for Your Application')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          in: 'header',
+        },
+        'access-token'
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
 
     app.useGlobalFilters(new AllExceptionsFilter());
     app.useGlobalPipes(

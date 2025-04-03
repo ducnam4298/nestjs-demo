@@ -1,12 +1,21 @@
-import { SetMetadata } from '@nestjs/common';
+import { ApiBearerAuth, ApiExtraModels, ApiTags } from '@nestjs/swagger';
+import { applyDecorators, SetMetadata, Type } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { DecoratorKeys } from '@/shared/enums';
+import { DecoratorKeys, PaginationRequestDto } from '@/shared';
 
 export const Metadata = {
   Public: () => SetMetadata(DecoratorKeys.PUBLIC, true),
   Permissions: (...permissions: string[]) => SetMetadata(DecoratorKeys.PERMISSIONS, permissions),
   Roles: (...roles: string[]) => SetMetadata(DecoratorKeys.ROLES, roles),
 };
+
+export function ApiController(tagName: string, modelDto: Type<any>) {
+  return applyDecorators(
+    ApiTags(tagName),
+    ApiBearerAuth('access-token'),
+    ApiExtraModels(PaginationRequestDto, modelDto)
+  );
+}
 
 const CustomThrottle = (key: string, ttl: number, limit: number) =>
   Throttle({ [key]: { ttl, limit } });
