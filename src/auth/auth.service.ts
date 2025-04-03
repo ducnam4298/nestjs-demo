@@ -131,7 +131,6 @@ export class AuthService {
 
     const userLogin = await this.databaseService.login.findFirst({
       where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
-      include: { user: { include: { role: { include: { permissions: true } } } } },
     });
 
     if (!userLogin || !(await this.passwordService.comparePassword(password, userLogin.password))) {
@@ -142,7 +141,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.tokenService.generateTokens(userLogin.user, deviceId);
+    return this.tokenService.generateTokens(userLogin.userId, deviceId);
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {

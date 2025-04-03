@@ -6,6 +6,7 @@ import { AppModule } from '@/app';
 import { AccessInterceptor } from '@/access_control';
 import { corsOrigin } from '@/config';
 import { LoggerService } from '@/services';
+import { RootRedirectMiddleware } from './middleware';
 // import { CleanQueryInterceptor } from '@/interceptors';
 
 const handleShutdown = (app: INestApplication) => {
@@ -33,6 +34,7 @@ const bootstrap = async () => {
   try {
     LoggerService.log('🚀 Bootstrapping NestJS app...', 'Bootstrap');
     const app = await NestFactory.create(AppModule);
+    app.setGlobalPrefix('api');
 
     app.useGlobalFilters(new AllExceptionsFilter());
     app.useGlobalPipes(
@@ -41,9 +43,10 @@ const bootstrap = async () => {
     app.useGlobalInterceptors(new AccessInterceptor());
     // app.useGlobalInterceptors(new AccessInterceptor(), new CleanQueryInterceptor());
 
-    app.setGlobalPrefix('api');
     app.enableCors(corsOrigin);
     app.enableShutdownHooks();
+
+    app.use((req, res, next) => new RootRedirectMiddleware().use(req, res, next));
 
     const configService = app.get(ConfigService);
     const PORT = configService.get<number>('PORT', { infer: true }) ?? 3000;
