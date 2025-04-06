@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { Position } from '@prisma/client';
 import { EmployeesService } from './employees.service';
 import { FindAllEmployeeDto } from './employees.dto';
 import { DatabaseService } from '@/database';
 import { FilterService, PaginationService } from '@/services';
 import {
+  Position,
   mockBeforeConsoleAndTimers,
   mockAfterConsoleAndTimers,
   retryTransaction,

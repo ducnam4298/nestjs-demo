@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import {
   ActivationDto,
   ChangePasswordDto,
@@ -123,7 +122,7 @@ export class UsersService {
   async findOne(id: string, findOneUserDto: FindOneUserDto) {
     const { email, phone } = findOneUserDto;
     LoggerService.log(`ℹ️ Finding user with ID: ${id}`, UsersService.name);
-    let uniqueWhere: Prisma.UserWhereUniqueInput | null = null;
+    let uniqueWhere: any = null;
     if (id) {
       uniqueWhere = { id };
     } else if (email) {

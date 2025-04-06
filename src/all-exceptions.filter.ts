@@ -29,11 +29,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.stack
         : undefined;
 
-    if (!request.route) {
-      LoggerService.warn(`🚨 API Not Found: ${request.method} ${request.url}`);
-      return response.redirect('/api');
-    }
-
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const errRes = exception.getResponse() as HttpErrorResponse;

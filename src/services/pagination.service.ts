@@ -17,7 +17,7 @@ export class PaginationService {
     sortBy?: string,
     sortOrder?: 'asc' | 'desc'
   ) {
-    const model = getModelDelegate(modelName, this.databaseService);
+    const model = getModelDelegate(modelName, this.databaseService as any);
     if (!model) {
       LoggerService.warn(`🚨 Model ${String(modelName)} not found`, PaginationService.name);
       throw new NotFoundException(`Model ${String(modelName)} not found`);

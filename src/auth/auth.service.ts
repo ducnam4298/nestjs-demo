@@ -1,14 +1,18 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { StatusUser } from '@prisma/client';
 import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { DatabaseService } from '@/database';
 import { RolesService } from '@/roles';
 import { LoggerService } from '@/services';
-import { UsersService } from '@/users';
-import { UpdateUserDto } from '@/users/users.dto';
-import { maskEmail, retryTransaction, isValidEmail, isValidPhoneNumber } from '@/shared/utils';
+import { UsersService, UpdateUserDto } from '@/users';
+import {
+  maskEmail,
+  retryTransaction,
+  isValidEmail,
+  isValidPhoneNumber,
+  StatusUser,
+} from '@/shared';
 
 @Injectable()
 export class AuthService {
@@ -77,10 +81,10 @@ export class AuthService {
     LoggerService.log('ℹ️ Registering SuperAdmin', AuthService.name);
 
     const roleId = await this.rolesService.ensureRoleExists('SUPER_ADMIN');
-    const existingAdmin = await this.usersService.findOne('', { email });
 
     return retryTransaction(async () => {
       return this.databaseService.$transaction(async db => {
+        const existingAdmin = await db.user.findUnique({ where: { email } });
         if (existingAdmin) {
           LoggerService.warn('🚨 SuperAdmin already exists. Checking role...', AuthService.name);
           const updateData: Partial<UpdateUserDto> = {};
@@ -131,7 +135,6 @@ export class AuthService {
 
     const userLogin = await this.databaseService.login.findFirst({
       where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
-      include: { user: { include: { role: { include: { permissions: true } } } } },
     });
 
     if (!userLogin || !(await this.passwordService.comparePassword(password, userLogin.password))) {
@@ -142,7 +145,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.tokenService.generateTokens(userLogin.user, deviceId);
+    return this.tokenService.generateTokens(userLogin.userId, deviceId);
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto) {

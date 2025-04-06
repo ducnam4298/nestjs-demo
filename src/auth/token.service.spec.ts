@@ -136,7 +136,7 @@ describe('TokenService', () => {
 
       tokenPM.create.mockResolvedValue({ userId, deviceId });
 
-      await tokenService.generateTokens(user, deviceId);
+      await tokenService.generateTokens(userId, deviceId);
 
       expect(tokenPM.create).toHaveBeenCalledWith(
         expect.objectContaining({

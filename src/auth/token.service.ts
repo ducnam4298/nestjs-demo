@@ -1,30 +1,10 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/services';
-
-interface Permission {
-  name: string;
-}
-
-interface Role {
-  name: string;
-  permissions?: Permission[];
-}
-
-interface User {
-  id: string;
-  role?: Role | null;
-}
-
-interface TokenPayload {
-  userId: string;
-  role: string;
-  iat?: number;
-  exp?: number;
-}
+import { TokenPayload } from '@/shared';
 
 @Injectable()
 export class TokenService {
@@ -53,18 +33,13 @@ export class TokenService {
     }
   }
 
-  async generateTokens(user: User, deviceId: string) {
-    if (!user || !user.id) throw new UnauthorizedException('Invalid user data');
-
-    const { id: userId, role } = user;
-    if (!role) throw new ForbiddenException('User has no assigned role');
-    const roleName = role?.name || 'UNKNOWN';
-    const permissions: string[] = role?.permissions?.map(p => p.name) || [];
+  async generateTokens(userId: string, deviceId: string) {
+    if (!userId) throw new UnauthorizedException('Invalid userId data');
 
     LoggerService.log(`ℹ️ Generating tokens for user ${userId}`, TokenService.name);
 
     const accessToken = this.jwtService.sign(
-      { userId, deviceId, role: roleName, permissions },
+      { userId, deviceId },
       {
         secret: this.configService.get<string>('JWT_SECRET'),
         expiresIn: '15m',
@@ -127,7 +102,7 @@ export class TokenService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    return this.generateTokens(tokenRecord.user, deviceId);
+    return this.generateTokens(tokenRecord.userId, deviceId);
   }
 
   async invalidateToken(userId: string, deviceId: string) {

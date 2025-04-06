@@ -107,9 +107,9 @@ export const getAllowedSortFields = async <T extends keyof ModelDelegates>(
 
 export const getModelDelegate = <T extends keyof ModelDelegates>(
   model: T,
-  dbService: DatabaseService
+  dbService: ModelDelegates
 ): ModelDelegates[T] => {
-  return dbService[model] as unknown as ModelDelegates[T];
+  return dbService[model];
 };
 
 export const buildWhereClause = (filters: Record<string, any>) => {

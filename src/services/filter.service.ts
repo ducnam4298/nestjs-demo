@@ -13,7 +13,7 @@ export class FilterService {
     sortBy: string | undefined,
     sortOrder: string | undefined
   ): Promise<{ sortBy: string; sortOrder: SortOrder }> {
-    const model = getModelDelegate(modelName, this.databaseService);
+    const model = getModelDelegate(modelName, this.databaseService as any);
     const allowedSortFields = await getAllowedSortFields(modelName, this.databaseService);
 
     const cleanValue = (value?: string) =>

@@ -51,3 +51,10 @@ export class PaginationResponseDto<T> {
     this.pageRecords = pageRecords;
   }
 }
+
+export interface TokenPayload {
+  userId?: string;
+  deviceId?: string;
+  iat?: number;
+  exp?: number;
+}
