@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from '@/all-exceptions.filter';
 import { AppModule } from '@/app';
 import { AccessInterceptor } from '@/access_control';
 import { corsOrigin } from '@/config';
 import { LoggerService } from '@/services';
-import { RootRedirectMiddleware } from './middleware';
+import { RootRedirectMiddleware } from '@/middleware';
 // import { CleanQueryInterceptor } from '@/interceptors';
 
 const handleShutdown = (app: INestApplication) => {
@@ -35,6 +36,34 @@ const bootstrap = async () => {
     LoggerService.log('🚀 Bootstrapping NestJS app...', 'Bootstrap');
     const app = await NestFactory.create(AppModule);
     app.setGlobalPrefix('api');
+
+    const config = new DocumentBuilder()
+      .setTitle('API Documentation')
+      .setDescription('API Documentation for Your Application')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          in: 'header',
+        },
+        'access-token'
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('/swagger', app, document, {
+      customJs: [
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.js',
+      ],
+      customCssUrl: [
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.min.css',
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css',
+      ],
+    });
 
     app.useGlobalFilters(new AllExceptionsFilter());
     app.useGlobalPipes(

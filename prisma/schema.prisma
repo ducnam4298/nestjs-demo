@@ -13,36 +13,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Position {
-  MANAGER
-  DEVELOPER
-  DESIGNER
-  QA
-  HR
-  SALES
-}
-
-enum StatusUser {
-  ACTIVATED
-  PENDING
-  BLOCKED
-}
-
 model User {
-  id         String      @id @default(uuid())
-  createdAt  DateTime    @default(now())
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
   updatedAt  DateTime?
   name       String
-  email      String      @unique
-  phone      String      @unique
+  email      String    @unique
+  phone      String    @unique
   token      Token[]
-  login      Login?      @relation
+  login      Login?    @relation
   employeeId String?
-  employee   Employee?   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   roleId     String?
-  role       Role?       @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  isActive   Boolean     @default(false)
-  status     StatusUser? @default(PENDING)
+  role       Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  isActive   Boolean   @default(false)
+  status     String?   @default("PENDING")
 
   @@index([id, name, email, phone, employeeId, roleId, isActive, status, createdAt, updatedAt])
 }
@@ -78,7 +63,7 @@ model Employee {
   id        String    @id @default(uuid())
   createdAt DateTime  @default(now())
   updatedAt DateTime?
-  position  Position
+  position  String
   users     User[]
 
   @@index([id, position, createdAt, updatedAt])

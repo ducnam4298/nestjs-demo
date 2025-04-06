@@ -1,15 +1,25 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { Position } from '@prisma/client';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { PaginationRequestDto } from '@/shared/dtos';
+import { PaginationRequestDto, Position } from '@/shared';
 
 export class CreateEmployeeDto {
+  @ApiProperty({
+    description: 'Position of the employee',
+    example: 'DEVELOPER',
+    enum: Position,
+  })
   @IsNotEmpty()
   @IsString()
   position: Position;
 }
 
 export class FindAllEmployeeDto extends PartialType(PaginationRequestDto) {
+  @ApiProperty({
+    description: 'Position of the employee (optional)',
+    example: 'DEVELOPER',
+    required: false,
+    enum: Position,
+  })
   @IsOptional()
   @IsString()
   position?: Position;

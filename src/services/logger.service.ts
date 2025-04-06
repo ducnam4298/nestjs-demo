@@ -20,7 +20,7 @@ export class LoggerService extends ConsoleLogger {
   private logQueue: string[] = [];
   private isWriting = false;
   private logDir: string = (() => {
-    if (process.env.VERCEL) {
+    if (process.env.NODE_ENV === 'production') {
       return '/tmp';
     }
     const localDir = path.join(__dirname, '..', '..', 'tmp');
@@ -33,6 +33,9 @@ export class LoggerService extends ConsoleLogger {
 
   private constructor() {
     super();
+    if (!LoggerService._instance) {
+      LoggerService._instance = this;
+    }
     this.ensureLogDirectory();
     this.startLogWorker();
     this.scheduleLogCleanup();
