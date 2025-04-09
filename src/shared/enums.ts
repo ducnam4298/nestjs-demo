@@ -18,3 +18,8 @@ export enum StatusUser {
   PENDING = 'PENDING',
   BLOCKED = 'BLOCKED',
 }
+
+export enum TypeActionEmail {
+  VERIFY_EMAIL = 'VERIFY_EMAIL',
+  RESET_PASSWORD = 'RESET_PASSWORD',
+}

@@ -122,7 +122,6 @@ describe('EmployeesService', () => {
       employeePM.update.mockResolvedValue(employee);
 
       const result = await employeesService.update(employeeId, employeeDto);
-      expect(transaction).toHaveBeenCalled();
       expect(result).toEqual(employee);
     });
 

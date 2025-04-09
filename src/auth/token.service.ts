@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { DatabaseService } from '@/database';
 import { LoggerService } from '@/services';
-import { TokenPayload } from '@/shared';
+import { ActionTokenEmailPayload, TokenPayload } from '@/shared';
 
 @Injectable()
 export class TokenService {
@@ -14,7 +14,7 @@ export class TokenService {
     private readonly databaseService: DatabaseService
   ) {}
 
-  verifyToken(token: string): TokenPayload {
+  verifyToken(token: string, allowExpired = false): TokenPayload | ActionTokenEmailPayload {
     try {
       return this.jwtService.verify(token);
     } catch (error) {
@@ -22,6 +22,12 @@ export class TokenService {
 
       if (error instanceof Error) {
         if (error.name === 'TokenExpiredError') {
+          if (allowExpired) {
+            const payload: ActionTokenEmailPayload = this.jwtService.decode(token);
+            if (!payload) throw new UnauthorizedException('Token decoding failed');
+            console.log(payload);
+            return payload;
+          }
           throw new UnauthorizedException('Token has expired');
         }
         if (error.name === 'JsonWebTokenError') {
@@ -80,6 +86,15 @@ export class TokenService {
 
       return { accessToken, refreshToken };
     });
+  }
+
+  generateActionTokenEmail(email: string, type: string) {
+    const payload = { email, type };
+    const actionTokenEmail = this.jwtService.sign(payload, {
+      expiresIn: '5m',
+      secret: this.configService.get<string>('JWT_SECRET'),
+    });
+    return actionTokenEmail;
   }
 
   async refreshAccessToken(refreshToken: string, deviceId: string) {

@@ -23,6 +23,6 @@ import { CoreModule } from '@/core';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware, CleanStringMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware, CleanStringMiddleware).forRoutes('*path');
   }
 }

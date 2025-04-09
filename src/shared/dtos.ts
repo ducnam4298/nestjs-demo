@@ -80,3 +80,10 @@ export interface TokenPayload {
   iat?: number;
   exp?: number;
 }
+
+export interface ActionTokenEmailPayload {
+  email?: string;
+  type?: string;
+  iat?: number;
+  exp?: number;
+}

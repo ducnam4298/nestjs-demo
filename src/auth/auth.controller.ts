@@ -1,27 +1,28 @@
-import { Controller, Post, Body, Req, Patch, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Body, Req, Patch, Get, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  LogoutDto,
+  RefreshTokenDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from './auth.dto';
 import { Throttles, Metadata } from '@/access_control';
-import { ChangePasswordDto } from '@/users/users.dto';
-import { UsersService } from '@/users';
 
 @Throttles.Auth()
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly usersService: UsersService
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Metadata.Public()
-  @ApiOperation({ summary: 'Change user password' })
-  @ApiParam({ name: 'id', type: String, description: 'User ID' })
-  @ApiBody({ type: ChangePasswordDto })
-  @Patch(':id/password')
-  async changePassword(@Param('id') id: string, @Body() changePasswordDto: ChangePasswordDto) {
-    return this.usersService.changePassword(id, changePasswordDto);
+  @ApiOperation({ summary: 'Forgot user password' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @Patch('forgotPassword')
+  async forgotPassword(@Body() forgotPassword: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPassword.email);
   }
 
   @Metadata.Public()
@@ -30,21 +31,6 @@ export class AuthController {
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
-  }
-
-  @Metadata.Public()
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiBody({ type: RegisterDto })
-  @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-
-  @Metadata.Public()
-  @ApiOperation({ summary: 'Register a superadmin' })
-  @Post('register-superadmin')
-  async registerSuperAdmin() {
-    return this.authService.registerSuperAdmin();
   }
 
   @ApiOperation({ summary: 'Logout' })
@@ -66,5 +52,34 @@ export class AuthController {
   @Post('refresh')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);
+  }
+
+  @Metadata.Public()
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiBody({ type: RegisterDto })
+  @Post('register')
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Metadata.Public()
+  @ApiOperation({ summary: 'Register a superadmin' })
+  @Post('register-superadmin')
+  async registerSuperAdmin() {
+    return this.authService.registerSuperAdmin();
+  }
+
+  @Metadata.Public()
+  @ApiOperation({ summary: 'Reset password user' })
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Metadata.Public()
+  @ApiOperation({ summary: 'Verify email user' })
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 }

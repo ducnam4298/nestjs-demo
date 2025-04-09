@@ -1,6 +1,67 @@
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+export class ForgotPasswordDto {
+  @ApiProperty({
+    description: 'The email address associated with the user account to reset the password.',
+    example: 'example@gmail.com',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email: string;
+}
+
+export class LoginDto {
+  @ApiProperty({
+    description: 'Identifier (either username or email) for login',
+    example: 'admin',
+  })
+  @IsNotEmpty()
+  @IsString()
+  identifier: string;
+
+  @ApiProperty({ description: 'Password for the user', example: 'superadmin' })
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+
+  @ApiProperty({ description: 'Device ID used for login', example: 'macOSM1' })
+  @IsNotEmpty()
+  @IsString()
+  deviceId: string;
+}
+
+export class LogoutDto {
+  @ApiProperty({
+    description: 'User ID of the user logging out',
+    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+  })
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+
+  @ApiProperty({ description: 'Device ID to logout from', example: 'macOSM1' })
+  @IsNotEmpty()
+  @IsString()
+  deviceId: string;
+}
+
+export class RefreshTokenDto {
+  @ApiProperty({
+    description: 'Refresh token for re-authentication',
+    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+  })
+  @IsNotEmpty()
+  @IsString()
+  refreshToken: string;
+
+  @ApiProperty({ description: 'Device ID used for refresh token request', example: 'macOSM1' })
+  @IsNotEmpty()
+  @IsString()
+  deviceId: string;
+}
+
 export class RegisterDto {
   @ApiProperty({ description: 'Name of the user', example: 'Ngô Đức Nam' })
   @IsNotEmpty()
@@ -49,63 +110,20 @@ export class RegisterDto {
   roleId?: string;
 }
 
-export class LoginDto {
+export class ResetPasswordDto {
   @ApiProperty({
-    description: 'Identifier (either username or email) for login',
-    example: 'admin',
+    description: "The token sent to the user's email for password reset verification.",
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   @IsNotEmpty()
   @IsString()
-  identifier: string;
+  token: string;
 
-  @ApiProperty({ description: 'Password for the user', example: 'superadmin' })
-  @IsNotEmpty()
-  @IsString()
-  password: string;
-
-  @ApiProperty({ description: 'Device ID used for login', example: 'macOSM1' })
-  @IsNotEmpty()
-  @IsString()
-  deviceId: string;
-}
-
-export class RefreshTokenDto {
   @ApiProperty({
-    description: 'Refresh token for re-authentication',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    description: 'The new password that the user wants to set.',
+    example: 'NewSecurePassword123!',
   })
   @IsNotEmpty()
   @IsString()
-  refreshToken: string;
-
-  @ApiProperty({ description: 'Device ID used for refresh token request', example: 'macOSM1' })
-  @IsNotEmpty()
-  @IsString()
-  deviceId: string;
-}
-
-export class LogoutDto {
-  @ApiProperty({
-    description: 'User ID of the user logging out',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
-  })
-  @IsNotEmpty()
-  @IsString()
-  userId: string;
-
-  @ApiProperty({ description: 'Device ID to logout from', example: 'macOSM1' })
-  @IsNotEmpty()
-  @IsString()
-  deviceId: string;
-}
-
-export class ForgotPasswordDto {
-  @ApiProperty({
-    description: 'The email address associated with the user account to reset the password.',
-    example: 'example@gmail.com',
-  })
-  @IsNotEmpty()
-  @IsString()
-  @IsEmail()
-  email: string;
+  newPassword: string;
 }

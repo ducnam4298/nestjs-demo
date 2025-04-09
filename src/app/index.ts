@@ -1,5 +1,3 @@
-import { AppService } from './app.service';
-import { AppModule } from './app.module';
-import { AppController } from './app.controller';
-
-export { AppController, AppModule, AppService };
+export * from './app.service';
+export * from './app.module';
+export * from './app.controller';

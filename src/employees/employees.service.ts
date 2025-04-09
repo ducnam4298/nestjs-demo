@@ -64,25 +64,20 @@ export class EmployeesService {
 
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto) {
     LoggerService.log(`ℹ️ Updating employee with ID: ${id}`, EmployeesService.name);
-    return this.databaseService.$transaction(async db => {
-      const existingEmployee = await db.employee.findUnique({ where: { id } });
-      if (!existingEmployee) {
-        LoggerService.warn(
-          `🚨 Employee not found for update with ID: ${id}`,
-          EmployeesService.name
-        );
-        throw new NotFoundException('Employee not found');
-      }
-      const updatedEmployee = await db.employee.update({
-        where: { id },
-        data: updateEmployeeDto,
-      });
-      LoggerService.log(
-        `✅ Employee updated successfully: ${updatedEmployee.id}`,
-        EmployeesService.name
-      );
-      return updatedEmployee;
+    const existingEmployee = await this.databaseService.employee.findUnique({ where: { id } });
+    if (!existingEmployee) {
+      LoggerService.warn(`🚨 Employee not found for update with ID: ${id}`, EmployeesService.name);
+      throw new NotFoundException('Employee not found');
+    }
+    const updatedEmployee = await this.databaseService.employee.update({
+      where: { id },
+      data: updateEmployeeDto,
     });
+    LoggerService.log(
+      `✅ Employee updated successfully: ${updatedEmployee.id}`,
+      EmployeesService.name
+    );
+    return updatedEmployee;
   }
 
   async remove(id: string) {

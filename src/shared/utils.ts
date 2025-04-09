@@ -21,7 +21,7 @@ export const isValidEmail = (email: string): boolean => {
 export function isValidPhoneNumber(phone: string): boolean {
   try {
     if (!phone.startsWith('+')) {
-      LoggerService.warn(`⚠️ Phone number missing country code: ${phone}`, 'PhoneValidation');
+      LoggerService.error(`❌ Phone number missing country code: ${phone}`, 'PhoneValidation');
       throw new BadRequestException(
         'Phone number must include country code (e.g., +84 for Vietnam)'
       );
@@ -30,7 +30,7 @@ export function isValidPhoneNumber(phone: string): boolean {
     const phoneNumber = parsePhoneNumberWithError(phone);
 
     if (!isValidNumber(phoneNumber.number, phoneNumber.country)) {
-      LoggerService.warn(`🚫 Invalid phone number: ${phone}`, 'PhoneValidation');
+      LoggerService.error(`❌ Invalid phone number: ${phone}`, 'PhoneValidation');
       throw new BadRequestException('Invalid phone number');
     }
 
@@ -126,4 +126,24 @@ export const buildWhereClause = (filters: Record<string, any>) => {
   });
 
   return where;
+};
+
+export const buildAppLink = (path: string) => {
+  const env = process.env.VERCEL_ENV || process.env.NODE_ENV;
+  let baseUrl: string;
+
+  switch (env) {
+    case 'production':
+      baseUrl = `https://nestjsbase.vercel.app`;
+      break;
+    case 'preview':
+      baseUrl = `https://nestjsbase-preview.vercel.app`;
+      break;
+    default:
+      baseUrl = `http://localhost:3000`;
+      break;
+  }
+  const urlLink = `${baseUrl}/${path}`;
+  LoggerService.log(`ℹ️ Email link generated: ${urlLink}`, 'Utils');
+  return urlLink;
 };

@@ -1,17 +1,31 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { LoginDto, LogoutDto, RefreshTokenDto, RegisterDto } from './auth.dto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  LogoutDto,
+  RefreshTokenDto,
+  RegisterDto,
+  ResetPasswordDto,
+} from './auth.dto';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { DatabaseService } from '@/database';
 import { RolesService } from '@/roles';
 import { LoggerService } from '@/services';
-import { UsersService, UpdateUserDto } from '@/users';
+import { UpdateUserDto } from '@/users';
+import { MailService } from '@/mail';
 import {
   maskEmail,
   retryTransaction,
   isValidEmail,
   isValidPhoneNumber,
   StatusUser,
+  ActionTokenEmailPayload,
 } from '@/shared';
 
 @Injectable()
@@ -21,8 +35,59 @@ export class AuthService {
     private readonly rolesService: RolesService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
-    private readonly usersService: UsersService
+    private readonly mailService: MailService
   ) {}
+
+  async forgotPassword(email: string) {
+    const loginUser = await this.databaseService.login.findUnique({ where: { email } });
+    if (!loginUser) throw new NotFoundException('Email not found');
+
+    await this.mailService.sendPasswordResetEmail(
+      email,
+      loginUser.username ?? loginUser.email ?? 'You',
+      '15 phút'
+    );
+
+    return 'Reset password email sent';
+  }
+
+  async login(loginDto: LoginDto) {
+    const { identifier, password, deviceId } = loginDto;
+    LoggerService.log(`ℹ️ User login attempt from device: ${deviceId}`, AuthService.name);
+
+    const userLogin = await this.databaseService.login.findFirst({
+      where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
+    });
+
+    if (!userLogin || !(await this.passwordService.comparePassword(password, userLogin.password))) {
+      LoggerService.error(
+        '🚨 Failed login attempt: User not found or Incorrect password',
+        AuthService.name
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return this.tokenService.generateTokens(userLogin.userId, deviceId);
+  }
+
+  async refreshToken(refreshTokenDto: RefreshTokenDto) {
+    const { refreshToken, deviceId } = refreshTokenDto;
+    LoggerService.log(`ℹ️ Refreshing token for device: ${deviceId}`, AuthService.name);
+    return this.tokenService.refreshAccessToken(refreshToken, deviceId);
+  }
+
+  async logout(logoutDto: LogoutDto) {
+    const { userId, deviceId } = logoutDto;
+    LoggerService.log(`ℹ️ User ${userId} logging out from device ${deviceId}`, AuthService.name);
+    await this.tokenService.invalidateToken(userId, deviceId);
+    return 'Logged out from this device';
+  }
+
+  async logoutAll(userId: string) {
+    LoggerService.log(`ℹ️ User ${userId} logging out from all devices`, AuthService.name);
+    await this.tokenService.invalidateAllTokens(userId);
+    return 'Logged out from all devices';
+  }
 
   async register(registerDto: RegisterDto) {
     const { name, password, username, email, phone, roleId } = registerDto;
@@ -71,6 +136,9 @@ export class AuthService {
         },
       });
       LoggerService.log(`✅ User ${createdUser.id} registered successfully`, AuthService.name);
+      if (email) {
+        await this.mailService.sendVerificationEmail(email, username);
+      }
       return createdUser.id;
     }, AuthService.name);
   }
@@ -129,45 +197,48 @@ export class AuthService {
     }, AuthService.name);
   }
 
-  async login(loginDto: LoginDto) {
-    const { identifier, password, deviceId } = loginDto;
-    LoggerService.log(`ℹ️ User login attempt from device: ${deviceId}`, AuthService.name);
-
-    const userLogin = await this.databaseService.login.findFirst({
-      where: { OR: [{ email: identifier }, { phone: identifier }, { username: identifier }] },
-    });
-
-    if (!userLogin || !(await this.passwordService.comparePassword(password, userLogin.password))) {
-      LoggerService.warn(
-        '🚨 Failed login attempt: User not found or Incorrect password',
-        AuthService.name
-      );
-      throw new UnauthorizedException('Invalid credentials');
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword } = resetPasswordDto;
+    const payload: ActionTokenEmailPayload = this.tokenService.verifyToken(token, true);
+    if (!payload || payload.type !== 'RESET_PASSWORD') {
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
-    return this.tokenService.generateTokens(userLogin.userId, deviceId);
+    const user = await this.databaseService.login.findUnique({
+      where: { email: payload.email },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const hashedPassword = await this.passwordService.hashPassword(newPassword);
+    await this.databaseService.$transaction(async db => {
+      await db.login.update({
+        where: { email: payload.email },
+        data: { password: hashedPassword },
+      });
+    });
+
+    return 'Password has been reset';
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    const { refreshToken, deviceId } = refreshTokenDto;
-    LoggerService.log(`ℹ️ Refreshing token for device: ${deviceId}`, AuthService.name);
-    return this.tokenService.refreshAccessToken(refreshToken, deviceId);
-  }
+  async verifyEmail(token: string) {
+    const payload: ActionTokenEmailPayload = this.tokenService.verifyToken(token);
+    if (!payload || payload.type !== 'VERIFY_EMAIL') {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
 
-  async logout(logoutDto: LogoutDto) {
-    const { userId, deviceId } = logoutDto;
-    LoggerService.log(`ℹ️ User ${userId} logging out from device ${deviceId}`, AuthService.name);
-    await this.tokenService.invalidateToken(userId, deviceId);
-    return { message: 'Logged out from this device' };
-  }
+    const user = await this.databaseService.user.findUnique({
+      where: { email: payload.email },
+    });
+    if (!user) throw new NotFoundException('User not found');
 
-  async logoutAll(userId: string) {
-    LoggerService.log(`ℹ️ User ${userId} logging out from all devices`, AuthService.name);
-    await this.tokenService.invalidateAllTokens(userId);
-    return { message: 'Logged out from all devices' };
-  }
+    if (user.isActive) return 'The account has already been verified.';
+    await this.databaseService.$transaction(async db => {
+      await db.user.update({
+        where: { email: payload.email },
+        data: { isActive: true, status: StatusUser.ACTIVATED },
+      });
+    });
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string) {
-    return this.usersService.changePassword(userId, { oldPassword, newPassword });
+    return 'The account has been successfully verified.';
   }
 }

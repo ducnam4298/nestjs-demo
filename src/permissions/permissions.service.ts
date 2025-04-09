@@ -73,23 +73,21 @@ export class PermissionsService {
 
   async update(id: string, updatePermissionDto: UpdatePermissionDto) {
     LoggerService.log(`ℹ️ Updating permission with ID: ${id}`, PermissionsService.name);
-    return this.databaseService.$transaction(async db => {
-      const existingPermission = await db.permission.findUnique({ where: { id } });
-      if (!existingPermission) {
-        LoggerService.warn(`🚨 Permission not found with ID: ${id}`, PermissionsService.name);
-        throw new NotFoundException('Permission not found');
-      }
+    const existingPermission = await this.databaseService.permission.findUnique({ where: { id } });
+    if (!existingPermission) {
+      LoggerService.warn(`🚨 Permission not found with ID: ${id}`, PermissionsService.name);
+      throw new NotFoundException('Permission not found');
+    }
 
-      const updatedPermission = await db.permission.update({
-        where: { id },
-        data: updatePermissionDto,
-      });
-      LoggerService.log(
-        `✅ Permission updated successfully: ${updatedPermission.id}`,
-        PermissionsService.name
-      );
-      return updatedPermission;
+    const updatedPermission = await this.databaseService.permission.update({
+      where: { id },
+      data: updatePermissionDto,
     });
+    LoggerService.log(
+      `✅ Permission updated successfully: ${updatedPermission.id}`,
+      PermissionsService.name
+    );
+    return updatedPermission;
   }
 
   async remove(id: string) {
