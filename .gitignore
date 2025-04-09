@@ -1,5 +1,6 @@
 # compiled output
 /dist
+/api
 /node_modules
 /build
 /prisma/migrations
@@ -17,8 +18,9 @@ lerna-debug.log*
 
 # OS
 .DS_Store
-.vscode
-.vercel
+# .vscode
+.vercel/*
+!.vercel/project.json
 
 # Tests
 /coverage
@@ -59,4 +61,3 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-.vercel

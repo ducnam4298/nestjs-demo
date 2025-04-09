@@ -20,7 +20,11 @@ export class LoggerService extends ConsoleLogger {
   private logQueue: string[] = [];
   private isWriting = false;
   private logDir: string = (() => {
-    if (process.env.NODE_ENV === 'production') {
+    if (
+      process.env.VERCEL_ENV === 'production' ||
+      process.env.VERCEL_ENV === 'preview' ||
+      process.env.NODE_ENV === 'production'
+    ) {
       return '/tmp';
     }
     const localDir = path.join(__dirname, '..', '..', 'tmp');

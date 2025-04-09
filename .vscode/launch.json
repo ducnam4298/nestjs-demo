@@ -1,0 +1,34 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug NestJS",
+        "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
+        "program": "${workspaceFolder}/src/main.ts",
+        "cwd": "${workspaceFolder}",
+        "sourceMaps": true,
+        "smartStep": true,
+        "restart": true,
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+        "env": {
+          "NODE_ENV": "development"
+        }
+      },
+      {
+        "type": "node",
+        "request": "attach",
+        "name": "Attach Debugger",
+        "port": 9229,
+        "restart": true,
+        "sourceMaps": true,
+        "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+      }
+    ]  
+}

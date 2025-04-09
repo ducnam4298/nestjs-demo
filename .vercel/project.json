@@ -1,0 +1,15 @@
+{
+  "projectId": "prj_lKCHyM39OsNBx4zr1kzDgyoSO34g",
+  "orgId": "team_4APHW4xjwhlKaRr2IaDwa7xt",
+  "settings": {
+    "createdAt": 1741091206392,
+    "framework": null,
+    "devCommand": null,
+    "installCommand": "yarn install",
+    "buildCommand": "yarn build",
+    "outputDirectory": "dist",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "22.x"
+  }
+}

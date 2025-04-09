@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -28,6 +28,7 @@ export class RegisterDto {
     required: false,
   })
   @IsString()
+  @IsEmail()
   email?: string;
 
   @ApiProperty({
@@ -96,4 +97,15 @@ export class LogoutDto {
   @IsNotEmpty()
   @IsString()
   deviceId: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({
+    description: 'The email address associated with the user account to reset the password.',
+    example: 'example@gmail.com',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email: string;
 }

@@ -53,6 +53,7 @@ export class FindAllUserDto extends PartialType(PaginationRequestDto) {
     required: false,
   })
   @IsOptional()
+  @IsEmail()
   @IsString()
   email?: string;
 

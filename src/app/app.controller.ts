@@ -13,4 +13,9 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('logTestEnv')
+  logTestEnv() {
+    return this.appService.logTestEnv();
+  }
 }
