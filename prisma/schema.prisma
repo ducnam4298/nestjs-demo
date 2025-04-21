@@ -29,6 +29,9 @@ model User {
   isActive   Boolean   @default(false)
   status     String?   @default("PENDING")
 
+  orders        Order[] // Các đơn hàng của người dùng
+  userDiscounts UserDiscount[] // Các discount áp dụng cho người dùng
+
   @@index([id, name, email, phone, employeeId, roleId, isActive, status, createdAt, updatedAt])
 }
 
@@ -90,4 +93,132 @@ model Permission {
   roleId    String
 
   @@index([id, name, entity, roleId, createdAt, updatedAt])
+}
+
+model Category {
+  id            String              @id @default(uuid())
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime?
+  name          String
+  parentId      String? // Liên kết tới category cha
+  parent        Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  subCategories Category[]          @relation("CategoryHierarchy")
+  attributes    CategoryAttribute[] // Liên kết với các thuộc tính của category
+  products      Product[] // Liên kết với các sản phẩm thuộc category này
+}
+
+model Attribute {
+  id                String              @id @default(uuid())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?
+  name              String
+  dataType          String // Kiểu dữ liệu (string, number, boolean...)
+  categories        CategoryAttribute[] // Liên kết với các category mà attribute này thuộc về
+  productAttributes ProductAttribute[] // Liên kết với các sản phẩm có thuộc tính này
+}
+
+model CategoryAttribute {
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  categoryId  String
+  attributeId String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+}
+
+model ProductAttribute {
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  productId   String
+  attributeId String
+  value       String // Giá trị của thuộc tính cho sản phẩm
+  product     Product   @relation(fields: [productId], references: [id])
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+}
+
+model Product {
+  id         String             @id @default(uuid())
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime?
+  name       String
+  price      Float
+  categoryId String
+  category   Category           @relation(fields: [categoryId], references: [id])
+  attributes ProductAttribute[] // Các thuộc tính của sản phẩm
+  orderItems OrderItem[] // Các sản phẩm trong đơn hàng
+  discounts  ProductDiscount[] // Các discount áp dụng cho sản phẩm
+}
+
+model Discount {
+  id              String            @id @default(uuid())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime?
+  name            String // Tên discount
+  discountType    Int // Loại discount (product, order, user, ...)
+  value           Float // Giá trị discount (phần trăm hoặc giá trị cố định)
+  startDate       DateTime? // Ngày bắt đầu
+  endDate         DateTime? // Ngày kết thúc
+  isPercentage    Boolean // Trường này để phân biệt giữa phần trăm và giá trị cố định (True = % discount, False = giá trị cố định)
+  OrderDiscount   OrderDiscount[]
+  ProductDiscount ProductDiscount[]
+  UserDiscount    UserDiscount[]
+}
+
+model Order {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
+  status     Int // Trạng thái của đơn hàng
+  totalPrice Float // Tổng giá trị đơn hàng
+  userId     String // ID người dùng
+
+  user      User            @relation(fields: [userId], references: [id]) // Quan hệ với User
+  items     OrderItem[] // Các sản phẩm trong đơn hàng
+  discounts OrderDiscount[] // Các discount áp dụng cho đơn hàng
+}
+
+model OrderItem {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float // Giá sản phẩm trước giảm giá
+  discount  Float // Giảm giá cho sản phẩm trong đơn hàng
+
+  order   Order   @relation(fields: [orderId], references: [id]) // Quan hệ với Order
+  product Product @relation(fields: [productId], references: [id]) // Quan hệ với Product
+}
+
+model OrderDiscount {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime?
+  orderId    String
+  discountId String
+  order      Order     @relation(fields: [orderId], references: [id])
+  discount   Discount  @relation(fields: [discountId], references: [id])
+}
+
+model ProductDiscount {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime?
+  productId  String
+  discountId String
+  product    Product   @relation(fields: [productId], references: [id])
+  discount   Discount  @relation(fields: [discountId], references: [id])
+}
+
+model UserDiscount {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime?
+  userId     String
+  discountId String
+  user       User      @relation(fields: [userId], references: [id])
+  discount   Discount  @relation(fields: [discountId], references: [id])
 }

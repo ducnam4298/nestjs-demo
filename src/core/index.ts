@@ -6,10 +6,25 @@ import { RolesModule } from '@/roles';
 import { PermissionsModule } from '@/permissions';
 import { EmployeesModule } from '@/employees';
 import { FilterService, PaginationService } from '@/services';
+import { ProductsModule } from '@/products';
+import { CategoriesModule } from '@/categories';
+import { OrdersModule } from '@/orders';
+import { DiscountsModule } from '@/discounts';
 
 @Global()
 @Module({
-  imports: [AuthModule, UsersModule, RolesModule, PermissionsModule, EmployeesModule, MailModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    RolesModule,
+    PermissionsModule,
+    EmployeesModule,
+    ProductsModule,
+    CategoriesModule,
+    OrdersModule,
+    DiscountsModule,
+    MailModule,
+  ],
   providers: [FilterService, PaginationService],
   exports: [
     AuthModule,
@@ -17,6 +32,10 @@ import { FilterService, PaginationService } from '@/services';
     RolesModule,
     PermissionsModule,
     EmployeesModule,
+    ProductsModule,
+    CategoriesModule,
+    OrdersModule,
+    DiscountsModule,
     MailModule,
     FilterService,
     PaginationService,
