@@ -96,35 +96,28 @@ model Permission {
 }
 
 model Category {
-  id            String              @id @default(uuid())
-  createdAt     DateTime            @default(now())
+  id            String     @id @default(uuid())
+  createdAt     DateTime   @default(now())
   updatedAt     DateTime?
   name          String
-  parentId      String? // Liên kết tới category cha
-  parent        Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  subCategories Category[]          @relation("CategoryHierarchy")
-  attributes    CategoryAttribute[] // Liên kết với các thuộc tính của category
-  products      Product[] // Liên kết với các sản phẩm thuộc category này
+  parentId      String?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subCategories Category[] @relation("CategoryHierarchy")
+
+  products Product[]
+
+  @@index([id, name, parentId, createdAt, updatedAt])
 }
 
 model Attribute {
-  id                String              @id @default(uuid())
-  createdAt         DateTime            @default(now())
+  id                String             @id @default(uuid())
+  createdAt         DateTime           @default(now())
   updatedAt         DateTime?
   name              String
-  dataType          String // Kiểu dữ liệu (string, number, boolean...)
-  categories        CategoryAttribute[] // Liên kết với các category mà attribute này thuộc về
-  productAttributes ProductAttribute[] // Liên kết với các sản phẩm có thuộc tính này
-}
+  dataType          String
+  productAttributes ProductAttribute[]
 
-model CategoryAttribute {
-  id          String    @id @default(uuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime?
-  categoryId  String
-  attributeId String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  @@index([id, name, dataType, createdAt, updatedAt])
 }
 
 model ProductAttribute {
@@ -133,9 +126,11 @@ model ProductAttribute {
   updatedAt   DateTime?
   productId   String
   attributeId String
-  value       String // Giá trị của thuộc tính cho sản phẩm
-  product     Product   @relation(fields: [productId], references: [id])
+  value       String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   attribute   Attribute @relation(fields: [attributeId], references: [id])
+
+  @@index([id, productId, attributeId, createdAt, updatedAt])
 }
 
 model Product {
@@ -146,9 +141,11 @@ model Product {
   price      Float
   categoryId String
   category   Category           @relation(fields: [categoryId], references: [id])
-  attributes ProductAttribute[] // Các thuộc tính của sản phẩm
+  attributes ProductAttribute[]
   orderItems OrderItem[] // Các sản phẩm trong đơn hàng
   discounts  ProductDiscount[] // Các discount áp dụng cho sản phẩm
+
+  @@index([id, categoryId, name, price, createdAt, updatedAt])
 }
 
 model Discount {
@@ -164,6 +161,8 @@ model Discount {
   OrderDiscount   OrderDiscount[]
   ProductDiscount ProductDiscount[]
   UserDiscount    UserDiscount[]
+
+  @@index([id, discountType, startDate, endDate, isPercentage, createdAt, updatedAt])
 }
 
 model Order {
@@ -177,6 +176,8 @@ model Order {
   user      User            @relation(fields: [userId], references: [id]) // Quan hệ với User
   items     OrderItem[] // Các sản phẩm trong đơn hàng
   discounts OrderDiscount[] // Các discount áp dụng cho đơn hàng
+
+  @@index([id, status, totalPrice, userId, createdAt, updatedAt])
 }
 
 model OrderItem {
@@ -191,6 +192,8 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id]) // Quan hệ với Order
   product Product @relation(fields: [productId], references: [id]) // Quan hệ với Product
+
+  @@index([id, productId, orderId, createdAt, updatedAt])
 }
 
 model OrderDiscount {
@@ -201,6 +204,8 @@ model OrderDiscount {
   discountId String
   order      Order     @relation(fields: [orderId], references: [id])
   discount   Discount  @relation(fields: [discountId], references: [id])
+
+  @@index([id, orderId, discountId, createdAt, updatedAt])
 }
 
 model ProductDiscount {
@@ -211,6 +216,8 @@ model ProductDiscount {
   discountId String
   product    Product   @relation(fields: [productId], references: [id])
   discount   Discount  @relation(fields: [discountId], references: [id])
+
+  @@index([id, productId, discountId, createdAt, updatedAt])
 }
 
 model UserDiscount {
@@ -221,4 +228,6 @@ model UserDiscount {
   discountId String
   user       User      @relation(fields: [userId], references: [id])
   discount   Discount  @relation(fields: [discountId], references: [id])
+
+  @@index([id, userId, discountId, createdAt, updatedAt])
 }
