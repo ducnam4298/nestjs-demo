@@ -48,7 +48,7 @@ export class TokenService {
       { userId, deviceId },
       {
         secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: '15m',
+        expiresIn: '1h',
       }
     );
 

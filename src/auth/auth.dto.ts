@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ForgotPasswordDto {
   @ApiProperty({
     description: 'The email address associated with the user account to reset the password.',
-    example: 'example@gmail.com',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -35,7 +35,7 @@ export class LoginDto {
 export class LogoutDto {
   @ApiProperty({
     description: 'User ID of the user logging out',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -50,7 +50,7 @@ export class LogoutDto {
 export class RefreshTokenDto {
   @ApiProperty({
     description: 'Refresh token for re-authentication',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -103,7 +103,7 @@ export class RegisterDto {
 
   @ApiProperty({
     description: 'Role ID of the user (optional)',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
     required: false,
   })
   @IsString()
@@ -113,7 +113,7 @@ export class RegisterDto {
 export class ResetPasswordDto {
   @ApiProperty({
     description: "The token sent to the user's email for password reset verification.",
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -121,7 +121,7 @@ export class ResetPasswordDto {
 
   @ApiProperty({
     description: 'The new password that the user wants to set.',
-    example: 'NewSecurePassword123!',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()

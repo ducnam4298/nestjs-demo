@@ -99,22 +99,25 @@ model Category {
   id            String     @id @default(uuid())
   createdAt     DateTime   @default(now())
   updatedAt     DateTime?
-  name          String
+  name          String     @unique
   parentId      String?
   parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   subCategories Category[] @relation("CategoryHierarchy")
 
-  products Product[]
+  attributes Attribute[] @relation("CategoryAttributes")
+  products   Product[]
 
   @@index([id, name, parentId, createdAt, updatedAt])
 }
 
 model Attribute {
-  id                String             @id @default(uuid())
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime?
-  name              String
-  dataType          String
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  name      String    @unique
+  dataType  String
+
+  categories        Category[]         @relation("CategoryAttributes")
   productAttributes ProductAttribute[]
 
   @@index([id, name, dataType, createdAt, updatedAt])
@@ -128,7 +131,7 @@ model ProductAttribute {
   attributeId String
   value       String
   product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
   @@index([id, productId, attributeId, createdAt, updatedAt])
 }

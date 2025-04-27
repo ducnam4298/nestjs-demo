@@ -30,7 +30,7 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'Role ID of the user (optional)',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
     required: false,
   })
   @IsString()
@@ -98,7 +98,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 
   @ApiProperty({
     description: 'Status of the user (optional)',
-    example: 'ACTIVE',
+    example: '',
     required: false,
     enum: StatusUser,
   })
@@ -111,7 +111,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 export class ChangePasswordDto {
   @ApiProperty({
     description: 'Old password of the user',
-    example: 'OldPassword123',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -119,7 +119,7 @@ export class ChangePasswordDto {
 
   @ApiProperty({
     description: 'New password of the user',
-    example: 'NewPassword123',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -129,7 +129,7 @@ export class ChangePasswordDto {
 export class UpdateStatusDto {
   @ApiProperty({
     description: 'Status to be updated for the user',
-    example: 'INACTIVE',
+    example: '',
     enum: StatusUser,
   })
   @IsString()
@@ -140,7 +140,7 @@ export class UpdateStatusDto {
 export class UpdateUserRoleDto {
   @ApiProperty({
     description: 'Role ID to be updated for the user',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()

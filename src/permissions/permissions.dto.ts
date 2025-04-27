@@ -5,7 +5,7 @@ import { PaginationRequestDto } from '@/shared';
 export class CreatePermissionDto {
   @ApiProperty({
     description: 'Name of the permission',
-    example: 'Create',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -13,7 +13,7 @@ export class CreatePermissionDto {
 
   @ApiProperty({
     description: 'Entity associated with the permission',
-    example: 'USER',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -21,7 +21,7 @@ export class CreatePermissionDto {
 
   @ApiProperty({
     description: 'Role ID associated with the permission',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -31,7 +31,7 @@ export class CreatePermissionDto {
 export class FindAllPermissionDto extends PartialType(PaginationRequestDto) {
   @ApiProperty({
     description: 'Name of the permission (optional)',
-    example: 'Create',
+    example: '',
     required: false,
   })
   @IsOptional()
@@ -40,7 +40,7 @@ export class FindAllPermissionDto extends PartialType(PaginationRequestDto) {
 
   @ApiProperty({
     description: 'Entity associated with the permission (optional)',
-    example: 'USER',
+    example: '',
     required: false,
   })
   @IsOptional()
@@ -51,7 +51,7 @@ export class FindAllPermissionDto extends PartialType(PaginationRequestDto) {
 export class UpdatePermissionDto {
   @ApiProperty({
     description: 'Name of the permission (optional)',
-    example: 'Update',
+    example: '',
     required: false,
   })
   @IsOptional()
@@ -60,7 +60,7 @@ export class UpdatePermissionDto {
 
   @ApiProperty({
     description: 'Entity associated with the permission (optional)',
-    example: 'USER',
+    example: '',
     required: false,
   })
   @IsOptional()
@@ -69,7 +69,7 @@ export class UpdatePermissionDto {
 
   @ApiProperty({
     description: 'Role ID associated with the permission (optional)',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
     required: false,
   })
   @IsOptional()

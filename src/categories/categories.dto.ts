@@ -7,7 +7,7 @@ export class Category {}
 export class CreateCategoryDto {
   @ApiProperty({
     description: 'Name of the category',
-    example: 'Create',
+    example: '',
   })
   @IsNotEmpty()
   @IsString()
@@ -15,7 +15,7 @@ export class CreateCategoryDto {
 
   @ApiProperty({
     description: 'Parent category associated with the child category',
-    example: 'e6678934-0ab8-4cbe-af40-beae958e9270',
+    example: '',
   })
   @IsUUID()
   @IsOptional()
@@ -24,19 +24,29 @@ export class CreateCategoryDto {
 
   @ApiProperty({
     description: 'Array of subCategory IDs to be assigned to the parent category',
-    example: ['e6678934-0ab8-4cbe-af40-beae958e9270', 'e6678934-0ab8-4cbe-af40-beae958e9270'],
+    example: [''],
     type: [String],
   })
   @IsArray()
   @IsOptional()
   @IsNotEmpty()
   categoryIds?: string[];
+
+  @ApiProperty({
+    description: 'Array of attribute IDs to be assigned to the category',
+    example: [''],
+    type: [String],
+  })
+  @IsArray()
+  @IsOptional()
+  @IsNotEmpty()
+  attributeIds?: string[];
 }
 
 export class FindAllCategoryDto extends PartialType(PaginationRequestDto) {
   @ApiProperty({
     description: 'Name of the category',
-    example: 'Create',
+    example: '',
     required: false,
   })
   @IsOptional()

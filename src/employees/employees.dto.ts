@@ -5,7 +5,7 @@ import { PaginationRequestDto, Position } from '@/shared';
 export class CreateEmployeeDto {
   @ApiProperty({
     description: 'Position of the employee',
-    example: 'DEVELOPER',
+    example: '',
     enum: Position,
   })
   @IsNotEmpty()
@@ -16,7 +16,7 @@ export class CreateEmployeeDto {
 export class FindAllEmployeeDto extends PartialType(PaginationRequestDto) {
   @ApiProperty({
     description: 'Position of the employee (optional)',
-    example: 'DEVELOPER',
+    example: '',
     required: false,
     enum: Position,
   })

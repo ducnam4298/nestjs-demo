@@ -3,10 +3,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { LoggerService } from '@/services';
 import { isValidNumber, parsePhoneNumberWithError } from 'libphonenumber-js';
-import { ModelDelegates } from '.';
+import { LoggerService } from '@/services';
 import { DatabaseService } from '@/database';
+import { ModelDelegates } from '.';
 
 export const maskEmail = (email: string) => {
   const [local, domain] = email.split('@');
@@ -146,4 +146,20 @@ export const buildAppLink = (path: string) => {
   const urlLink = `${baseUrl}/${path}`;
   LoggerService.log(`ℹ️ Email link generated: ${urlLink}`, 'Utils');
   return urlLink;
+};
+
+export const validateIdsExistence = (existingIds: string[], ids: string[], allowPartial = true) => {
+  if (!ids?.length) return [];
+
+  const invalidIds: string[] = ids.filter(id => !existingIds.includes(id));
+
+  if (invalidIds.length > 0) {
+    const warningMessage = `🚨 These Ids are invalid: ${invalidIds.join(', ')}`;
+    if (allowPartial) {
+      LoggerService.warn(warningMessage);
+    } else {
+      throw new BadRequestException(warningMessage);
+    }
+  }
+  return existingIds;
 };

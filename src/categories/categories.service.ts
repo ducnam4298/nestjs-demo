@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto, FindAllCategoryDto, UpdateCategoryDto } from './categories.dto';
 import { FilterService, LoggerService, PaginationService } from '@/services';
-import { retryTransaction } from '@/shared';
+import { validateIdsExistence } from '@/shared';
 import { DatabaseService } from '@/database';
 
 @Injectable()
@@ -13,10 +13,21 @@ export class CategoriesService {
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
-    const { name, parentId, categoryIds } = createCategoryDto;
+    const { name, parentId, categoryIds, attributeIds } = createCategoryDto;
     LoggerService.log(`ℹ️ Creating new category`, CategoriesService.name);
+    const existingCategory = await this.databaseService.category.findFirst({
+      where: { OR: [{ name }, { parentId }] },
+    });
 
-    const eligibleSubCategories = categoryIds
+    if (existingCategory) {
+      LoggerService.warn(
+        `🚨 Category with this name or parentId already exists. Name: ${name}, ParentId: ${parentId}`,
+        CategoriesService.name
+      );
+      throw new BadRequestException('Category with this name or parentId already exists');
+    }
+
+    const existingCategories = categoryIds
       ? await this.databaseService.category.findMany({
           where: {
             id: { in: categoryIds },
@@ -24,34 +35,42 @@ export class CategoriesService {
           },
         })
       : [];
-    const eligibleSubCategoryIds = eligibleSubCategories.map(c => c.id);
-    const ineligibleSubCategoryIds = categoryIds
-      ? categoryIds.filter(id => !eligibleSubCategoryIds.includes(id))
-      : [];
 
-    if (ineligibleSubCategoryIds.length > 0) {
-      LoggerService.warn(
-        `🚨 The following subCategoryIds are either invalid or already assigned to a parent: ${ineligibleSubCategoryIds.join(',')}`
-      );
-    }
+    const eligibleSubCategoryIds = validateIdsExistence(
+      existingCategories.map(r => r.id),
+      attributeIds ?? []
+    );
 
-    const id = await retryTransaction<string>(async () => {
-      const newCategory = await this.databaseService.category.create({
+    const existingAttributes: { id: string; name: string }[] =
+      await this.databaseService.attribute.findMany({
+        where: { id: { in: attributeIds } },
+        select: { id: true, name: true },
+      });
+    const eligibleAttributeIds = validateIdsExistence(
+      existingAttributes.map(r => r.id),
+      attributeIds ?? []
+    );
+
+    const id = await this.databaseService.$transaction(async db => {
+      const newCategory = await db.category.create({
         data: {
           name,
           parentId,
           subCategories: {
-            connect: eligibleSubCategoryIds.map(id => ({ id })),
+            connect:
+              eligibleSubCategoryIds.length > 0
+                ? eligibleSubCategoryIds.map(id => ({ id }))
+                : undefined,
+          },
+          attributes: {
+            connect: eligibleAttributeIds.map(id => ({ id })),
           },
         },
       });
-      LoggerService.log(
-        `✅ Category created successfully: ${newCategory.id}`,
-        CategoriesService.name
-      );
       return newCategory.id;
-    }, CategoriesService.name);
+    });
 
+    LoggerService.log(`✅ Category created successfully: ${id}`, CategoriesService.name);
     return id;
   }
 
@@ -79,7 +98,10 @@ export class CategoriesService {
     LoggerService.log(`ℹ️ Finding category with ID: ${id}`, CategoriesService.name);
     const category = await this.databaseService.category.findUnique({
       where: { id },
-      include: { subCategories: true },
+      include: {
+        subCategories: true,
+        attributes: true,
+      },
     });
     if (!category) {
       LoggerService.warn(`🚨 Category not found with ID: ${id}`, CategoriesService.name);
@@ -90,48 +112,66 @@ export class CategoriesService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    const { name, parentId, categoryIds } = updateCategoryDto;
+    const { name, parentId, categoryIds, attributeIds } = updateCategoryDto;
     LoggerService.log(`ℹ️ Updating category with ID: ${id}`, CategoriesService.name);
+    const existingCategory = await this.databaseService.category.findFirst({
+      where: { AND: [{ OR: [{ name }, { parentId }] }, { NOT: { id } }] },
+    });
+
+    if (existingCategory) {
+      LoggerService.warn(
+        `🚨 Category with this name or parentId already exists. Name: ${name}, ParentId: ${parentId}, ID: ${id}`,
+        CategoriesService.name
+      );
+      throw new BadRequestException('Category with this name or parentId already exists');
+    }
     const currentCategory = await this.databaseService.category.findUnique({
       where: { id },
-      include: { subCategories: true },
+      include: { subCategories: true, attributes: true },
     });
     if (!currentCategory) {
-      LoggerService.warn(`🚨 Category not found for update with ID: ${id}`, CategoriesService.name);
+      LoggerService.error(
+        `🚨 Category not found for update with ID: ${id}`,
+        CategoriesService.name
+      );
       throw new NotFoundException('Category not found');
     }
+    const currentSubCategoryIds = currentCategory.subCategories.map(s => s.id);
+    const currentAttributeIds = currentCategory.attributes.map(a => a.id);
 
-    const eligibleSubCategories = categoryIds
-      ? await this.databaseService.category.findMany({
-          where: {
-            id: { in: categoryIds.filter(subId => subId !== id) },
-            parentId: null,
-          },
-        })
-      : [];
-    const eligibleIds = eligibleSubCategories.map(c => c.id);
-    const ineligibleIds = categoryIds ? categoryIds.filter(id => !eligibleIds.includes(id)) : [];
-
-    if (ineligibleIds.length > 0) {
-      LoggerService.warn(
-        `🚨 These subCategoryIds are invalid, already have a parent, or trying to be their own parent: ${ineligibleIds.join(', ')}`
-      );
-    }
-    const updatedCategory = await this.databaseService.category.update({
-      where: { id },
-      data: {
-        name: name ?? currentCategory.name,
-        parentId: parentId ?? currentCategory.parentId,
-        subCategories: {
-          connect: eligibleIds.map(id => ({ id })),
-        },
-      },
-    });
-    LoggerService.log(
-      `✅ Category updated successfully: ${updatedCategory.id}`,
-      CategoriesService.name
+    const connectSubCategoryIds = (categoryIds ?? []).filter(
+      id => !currentSubCategoryIds.includes(id)
     );
-    return updatedCategory;
+    const connectAttributeIds = (attributeIds ?? []).filter(
+      id => !currentAttributeIds.includes(id)
+    );
+
+    const disconnectSubCategoryIds = currentSubCategoryIds.filter(
+      id => !(categoryIds ?? []).includes(id)
+    );
+    const disconnectAttributeIds = currentAttributeIds.filter(
+      id => !(attributeIds ?? []).includes(id)
+    );
+
+    await this.databaseService.$transaction(async db => {
+      await db.category.update({
+        where: { id },
+        data: {
+          name: name ?? currentCategory.name,
+          parentId: parentId ?? currentCategory.parentId,
+          subCategories: {
+            connect: connectSubCategoryIds.map(id => ({ id })),
+            disconnect: disconnectSubCategoryIds.map(id => ({ id })),
+          },
+          attributes: {
+            connect: connectAttributeIds.map(id => ({ id })),
+            disconnect: disconnectAttributeIds.map(id => ({ id })),
+          },
+        },
+      });
+    });
+
+    return id;
   }
 
   remove(id: string) {
