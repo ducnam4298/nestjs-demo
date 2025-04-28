@@ -24,21 +24,26 @@ export enum TypeActionEmail {
   RESET_PASSWORD = 'RESET_PASSWORD',
 }
 
+export enum DataTypeAttribute {
+  String = 'String',
+  Number = 'Number',
+}
+
 export enum DiscountType {
-  PERCENTAGE,
-  FIXED,
+  PERCENTAGE = 'PERCENTAGE',
+  FIXED = 'FIXED',
 }
 
 export enum DiscountStatus {
-  ACTIVE,
-  INACTIVE,
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
 }
 
 export enum OrderStatus {
-  PLACED, // Đã đặt hàng
-  PROCESSING, // Đang xử lý
-  CONFIRMED, // Xác nhận giao thành công
-  CANCELLED, // Huỷ đơn hàng
-  COMPLETED, // Hoàn thành
-  RETURNED, // Trả hàng
+  PLACED = 'PLACED', // Đã đặt hàng
+  PROCESSING = 'PROCESSING', // Đang xử lý
+  CONFIRMED = 'CONFIRMED', // Xác nhận giao thành công
+  CANCELLED = 'CANCELLED', // Huỷ đơn hàng
+  COMPLETED = 'COMPLETED', // Hoàn thành
+  RETURNED = 'RETURNED', // Trả hàng
 }

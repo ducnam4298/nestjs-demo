@@ -132,6 +132,7 @@ export class UpdateStatusDto {
     example: '',
     enum: StatusUser,
   })
+  @IsIn(Object.values(StatusUser))
   @IsString()
   @IsNotEmpty()
   status?: StatusUser;

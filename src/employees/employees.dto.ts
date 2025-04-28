@@ -1,5 +1,5 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { PaginationRequestDto, Position } from '@/shared';
 
 export class CreateEmployeeDto {
@@ -9,6 +9,7 @@ export class CreateEmployeeDto {
     enum: Position,
   })
   @IsNotEmpty()
+  @IsIn(Object.values(Position))
   @IsString()
   position: Position;
 }
@@ -21,6 +22,7 @@ export class FindAllEmployeeDto extends PartialType(PaginationRequestDto) {
     enum: Position,
   })
   @IsOptional()
+  @IsIn(Object.values(Position))
   @IsString()
   position?: Position;
 }
