@@ -29,9 +29,10 @@ export enum DataTypeAttribute {
   Number = 'Number',
 }
 
-export enum DiscountType {
-  PERCENTAGE = 'PERCENTAGE',
-  FIXED = 'FIXED',
+export enum DiscountAssign {
+  USER = 'USER',
+  PRODUCT = 'PRODUCT',
+  ORDER = 'ORDER',
 }
 
 export enum DiscountStatus {
