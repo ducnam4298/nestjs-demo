@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAttributeDto, FindAllAttributeDto, UpdateAttributeDto } from './attributes.dto';
 import { DatabaseService } from '@/database';
 import { FilterService, LoggerService, PaginationService } from '@/services';
@@ -14,6 +14,17 @@ export class AttributesService {
 
   async create(createAttributeDto: CreateAttributeDto) {
     LoggerService.log(`ℹ️ Creating new attribute`, AttributesService.name);
+    const existingAttribute = await this.databaseService.attribute.findUnique({
+      where: { name: createAttributeDto.name },
+    });
+
+    if (existingAttribute) {
+      LoggerService.warn(
+        `🚨 Attribute name already exists: ${createAttributeDto.name}`,
+        AttributesService.name
+      );
+      throw new BadRequestException('Attribute name already exists');
+    }
     const id = await retryTransaction<string>(async () => {
       const newAttribute = await this.databaseService.attribute.create({
         data: createAttributeDto,
@@ -71,6 +82,19 @@ export class AttributesService {
         AttributesService.name
       );
       throw new NotFoundException('Attribute not found');
+    }
+    const existingAttributeName = await this.databaseService.attribute.findUnique({
+      where: {
+        name: updateAttributeDto.name,
+        NOT: { id },
+      },
+    });
+    if (existingAttributeName) {
+      LoggerService.warn(
+        `🚨 Attribute name already exists: ${updateAttributeDto.name}`,
+        AttributesService.name
+      );
+      throw new BadRequestException('Attribute name already exists');
     }
     const updatedAttribute = await this.databaseService.attribute.update({
       where: { id },
