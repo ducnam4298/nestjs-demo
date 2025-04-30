@@ -99,8 +99,8 @@ export class CategoriesService {
     const category = await this.databaseService.category.findUnique({
       where: { id },
       include: {
-        subCategories: true,
-        attributes: true,
+        subCategories: { select: { id: true, name: true } },
+        attributes: { select: { id: true, name: true } },
       },
     });
     if (!category) {
@@ -127,7 +127,10 @@ export class CategoriesService {
     }
     const currentCategory = await this.databaseService.category.findUnique({
       where: { id },
-      include: { subCategories: true, attributes: true },
+      include: {
+        subCategories: { select: { id: true, name: true } },
+        attributes: { select: { id: true, name: true } },
+      },
     });
     if (!currentCategory) {
       LoggerService.error(

@@ -44,7 +44,7 @@ export class UsersService {
       throw new BadRequestException('Name, email, and phone are required');
     const user = await this.databaseService.user.findUnique({
       where: { id },
-      include: { login: true },
+      include: { login: { select: { id: true, username: true, password: true } } },
     });
     if (!user || !user.login) throw new NotFoundException('User or login credentials not found');
 

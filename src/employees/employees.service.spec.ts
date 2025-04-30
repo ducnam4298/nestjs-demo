@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
 import { FindAllEmployeeDto } from './employees.dto';
 import { DatabaseService } from '@/database';
@@ -24,6 +24,7 @@ describe('EmployeesService', () => {
     create: jest.fn(),
     delete: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
   };
 
@@ -72,11 +73,27 @@ describe('EmployeesService', () => {
 
   describe('create', () => {
     it('should create an employee and return the id', async () => {
+      employeePM.findFirst.mockResolvedValue(null);
       employeePM.create.mockResolvedValue(employee);
-      const employeeId = await employeesService.create(employeeDto);
 
+      const result = await employeesService.create(employeeDto);
+      expect(employeePM.findFirst).toHaveBeenCalledWith({
+        where: { position: employeeDto.position },
+      });
+      expect(employeePM.create).toHaveBeenCalledWith({
+        data: employeeDto,
+      });
       expect(retryTransaction).toHaveBeenCalledWith(expect.any(Function), EmployeesService.name);
-      expect(employeeId).toBe(employee.id);
+      expect(result).toBe(employee.id);
+    });
+    it('should throw BadRequestException if employee with same position exists', async () => {
+      employeePM.findFirst.mockResolvedValue(employee);
+      await expect(employeesService.create(employeeDto)).rejects.toThrow(BadRequestException);
+      expect(employeePM.findFirst).toHaveBeenCalledWith({
+        where: { position: employeeDto.position },
+      });
+      expect(employeePM.create).not.toHaveBeenCalled();
+      expect(retryTransaction).not.toHaveBeenCalled();
     });
   });
 

@@ -49,7 +49,7 @@ export class AccessGuard implements CanActivate {
 
     const user = await this.databaseService.user.findUnique({
       where: { id: userId },
-      include: { role: { include: { permissions: true } } },
+      include: { role: { include: { permissions: { select: { id: true, name: true } } } } },
     });
 
     if (!user) {

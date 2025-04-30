@@ -132,12 +132,12 @@ describe('RolesService', () => {
       expect(transaction).toHaveBeenCalled();
       expect(rolePM.findUnique).toHaveBeenCalledWith({
         where: { id: roleId },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       expect(rolePM.update).toHaveBeenCalledWith({
         where: { id: roleId },
         data: { permissions: { connect: [{ id: 'perm-2' }] } },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       expect(result).toEqual(updatedRolePermissionIds);
     });
@@ -151,7 +151,7 @@ describe('RolesService', () => {
 
       expect(rolePM.findUnique).toHaveBeenCalledWith({
         where: { id: roleId },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       expect(rolePM.update).not.toHaveBeenCalled();
     });
@@ -184,7 +184,7 @@ describe('RolesService', () => {
             create: permDefault,
           },
         },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       expect(result).toBe(role.id);
     });
@@ -252,7 +252,7 @@ describe('RolesService', () => {
 
       expect(rolePM.findUnique).toHaveBeenCalledWith({
         where: { id: roleId },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
 
       expect(result).toEqual(role);
@@ -264,7 +264,7 @@ describe('RolesService', () => {
       await expect(rolesService.findOne(roleId)).rejects.toThrow(NotFoundException);
       expect(rolePM.findUnique).toHaveBeenCalledWith({
         where: { id: roleId },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
     });
   });

@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { AttributesModule } from '@/attributes';
 import { AuthModule } from '@/auth';
+import { BrandsModule } from '@/brands';
 import { CategoriesModule } from '@/categories';
 import { DiscountsModule } from '@/discounts';
 import { EmployeesModule } from '@/employees';
@@ -17,6 +18,7 @@ import { UsersModule } from '@/users';
   imports: [
     AttributesModule,
     AuthModule,
+    BrandsModule,
     CategoriesModule,
     DiscountsModule,
     EmployeesModule,
@@ -31,6 +33,7 @@ import { UsersModule } from '@/users';
   exports: [
     AttributesModule,
     AuthModule,
+    BrandsModule,
     CategoriesModule,
     DiscountsModule,
     EmployeesModule,

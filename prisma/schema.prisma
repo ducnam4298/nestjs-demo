@@ -137,18 +137,53 @@ model ProductAttribute {
 }
 
 model Product {
-  id         String             @id @default(uuid())
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime?
-  name       String
-  price      Float
-  categoryId String
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  name        String
+  slug        String    @unique
+  description String?
+  price       Float
+  stock       Int       @default(0)
+  categoryId  String
+  brandId     String?
+
   category   Category           @relation(fields: [categoryId], references: [id])
+  brand      Brand?             @relation(fields: [brandId], references: [id])
+  images     ProductImage[]
   attributes ProductAttribute[]
   orderItems OrderItem[]
-  discounts  Discount[]         @relation("ProductDiscount") // Các discount áp dụng cho sản phẩm
+  discounts  Discount[]         @relation("ProductDiscount")
 
-  @@index([id, categoryId, name, price, createdAt, updatedAt])
+  @@index([id, slug, name, price, createdAt, updatedAt])
+}
+
+model ProductImage {
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  url         String // Đường dẫn ảnh
+  alt         String? // Alt text hỗ trợ SEO
+  productId   String
+  isThumbnail Boolean   @default(false) // Ảnh đại diện
+  order       Int? // Thứ tự hiển thị
+  type        String? // Loại ảnh (gallery, zoom, main,...)
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId, isThumbnail, order])
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  name      String    @unique
+  logoUrl   String?
+
+  products Product[]
+
+  @@index([id, name, createdAt, updatedAt])
 }
 
 model Discount {

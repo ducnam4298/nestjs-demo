@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { ApiOperation, ApiBody, ApiParam } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, FindAllCategoryDto, UpdateCategoryDto } from './categories.dto';
 import { ApiController, Metadata } from '@/access_control';
-import { ApiOperation, ApiBody, ApiParam } from '@nestjs/swagger';
 
 @ApiController('Categories', FindAllCategoryDto)
 @Controller('categories')

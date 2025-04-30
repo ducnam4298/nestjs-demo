@@ -106,7 +106,11 @@ export class TokenService {
 
     const tokenRecord = await this.databaseService.token.findFirst({
       where: { userId: decoded.userId, deviceId },
-      include: { user: { include: { role: { include: { permissions: true } } } } },
+      include: {
+        user: {
+          include: { role: { include: { permissions: { select: { id: true, name: true } } } } },
+        },
+      },
     });
 
     if (!tokenRecord || !tokenRecord.user) {

@@ -20,7 +20,7 @@ export class RolesService {
     return this.databaseService.$transaction(async db => {
       const existingRole = await db.role.findUnique({
         where: { id },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       if (!existingRole) {
         LoggerService.warn(`🚨 Role not found with ID: ${id}`, RolesService.name);
@@ -37,7 +37,7 @@ export class RolesService {
         data: {
           permissions: { connect: newPermissionIds.map(permissionId => ({ id: permissionId })) },
         },
-        include: { permissions: true },
+        include: { permissions: { select: { id: true, name: true } } },
       });
       LoggerService.log(
         `✅ Permissions assigned successfully for role with ID: ${id}`,
@@ -61,7 +61,7 @@ export class RolesService {
               create: DEFAULT_PERMISSION.map(perm => ({ name: perm, entity: name })),
             },
           },
-          include: { permissions: true },
+          include: { permissions: { select: { id: true, name: true } } },
         })
       );
       LoggerService.log(`✅ Role created successfully: ${name}`, RolesService.name);
@@ -115,7 +115,7 @@ export class RolesService {
     LoggerService.log(`ℹ️ Finding role with ID: ${id}`, RolesService.name);
     const role = await this.databaseService.role.findUnique({
       where: { id },
-      include: { permissions: true },
+      include: { permissions: { select: { id: true, name: true } } },
     });
     if (!role) {
       LoggerService.warn(`🚨 Role not found with ID: ${id}`, RolesService.name);
@@ -141,7 +141,7 @@ export class RolesService {
     LoggerService.log(`ℹ️ Updating permissions for role with ID: ${id}`, RolesService.name);
     const role = await this.databaseService.role.findUnique({
       where: { id },
-      include: { permissions: true },
+      include: { permissions: { select: { id: true, name: true } } },
     });
     if (!role) {
       LoggerService.warn(`🚨 Role not found with ID: ${id}`, RolesService.name);

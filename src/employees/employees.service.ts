@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEmployeeDto, FindAllEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { DatabaseService } from '@/database';
 import { FilterService, LoggerService, PaginationService } from '@/services';
@@ -13,7 +13,19 @@ export class EmployeesService {
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto) {
+    const { position } = createEmployeeDto;
     LoggerService.log(`ℹ️ Creating new employee`, EmployeesService.name);
+    const existingEmployee = await this.databaseService.employee.findFirst({
+      where: { position },
+    });
+
+    if (existingEmployee) {
+      LoggerService.warn(
+        `🚨 Employee with this position already exists. Name: ${position.toString()}`,
+        EmployeesService.name
+      );
+      throw new BadRequestException('Employee with this position already exists');
+    }
     const id = await retryTransaction<string>(async () => {
       const newEmployee = await this.databaseService.employee.create({
         data: createEmployeeDto,
